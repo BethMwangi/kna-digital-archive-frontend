@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { AuthProvider } from "../lib/auth/auth-provider";
 
 function NotFoundComponent() {
   return (
@@ -19,8 +20,8 @@ function NotFoundComponent() {
         <p className="eyebrow">Error 404</p>
         <h1 className="mt-3 font-display text-6xl leading-none">Page not found</h1>
         <p className="mt-4 text-sm text-muted-foreground">
-          The record you're looking for isn't in the archive — it may have been
-          moved or reclassified.
+          The record you're looking for isn't in the archive — it may have been moved or
+          reclassified.
         </p>
         <div className="mt-6">
           <Link
@@ -48,8 +49,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <p className="eyebrow">Something went wrong</p>
         <h1 className="mt-3 font-display text-3xl">This record didn't load</h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          A retrieval error occurred. You can try again or head back to the
-          archive home.
+          A retrieval error occurred. You can try again or head back to the archive home.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -130,7 +130,9 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <AuthProvider>
+        <Outlet />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

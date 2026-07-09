@@ -1,12 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import type {
-  Asset,
-  Collection,
-  LicenseType,
-  OrderStatus,
-} from "@/lib/mock-data";
+import type { Asset, Collection, LicenseType, OrderStatus } from "@/lib/mock-data";
 import { formatKES } from "@/lib/mock-data";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -170,7 +165,9 @@ export function SearchBar({
           size === "lg" ? "p-2" : "p-1.5",
         )}
       >
-        <Search className={cn("ml-2 text-muted-foreground", size === "lg" ? "h-5 w-5" : "h-4 w-4")} />
+        <Search
+          className={cn("ml-2 text-muted-foreground", size === "lg" ? "h-5 w-5" : "h-4 w-4")}
+        />
         <Input
           defaultValue={defaultValue}
           placeholder={placeholder}
@@ -239,7 +236,13 @@ const orderStyles: Record<OrderStatus, string> = {
 };
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {
   return (
-    <Badge variant="outline" className={cn("border font-medium uppercase tracking-wider text-[0.65rem]", orderStyles[status])}>
+    <Badge
+      variant="outline"
+      className={cn(
+        "border font-medium uppercase tracking-wider text-[0.65rem]",
+        orderStyles[status],
+      )}
+    >
       {status}
     </Badge>
   );
