@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -11,17 +11,37 @@ import {
   Settings,
   Bell,
   ChevronsLeft,
+  LogOut,
   Search,
 } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { RequireAdmin } from "@/lib/auth/protected-route";
+import { useAuth } from "@/lib/auth/use-auth";
+import { useLogout } from "@/hooks/use-auth-mutations";
 
 export const Route = createFileRoute("/admin")({
-  component: AdminLayout,
+  component: () => (
+    <RequireAdmin>
+      <AdminLayout />
+    </RequireAdmin>
+  ),
 });
 
-const nav: { to: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean }[] = [
+const roleLabels: Record<string, string> = {
+  admin: "Administrator",
+  super_admin: "Super Administrator",
+  content_editor: "Content Editor",
+  customer: "Customer",
+};
+
+const nav: {
+  to: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  exact?: boolean;
+}[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/assets", label: "Assets", icon: ImageIcon },
   { to: "/admin/categories", label: "Categories", icon: Layers },
@@ -35,6 +55,16 @@ const nav: { to: string; label: string; icon: React.ComponentType<{ className?: 
 function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const logout = useLogout();
+  const initials = user?.full_name
+    .split(" ")
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
   return (
     <div className="grid min-h-dvh grid-cols-[auto_1fr] bg-paper-warm">
       {/* Sidebar */}
@@ -44,12 +74,24 @@ function AdminLayout() {
           collapsed ? "w-16" : "w-64",
         )}
       >
-        <div className={cn("flex items-center gap-3 border-b border-white/10 p-4", collapsed && "justify-center")}>
-          <span aria-hidden className="grid h-8 w-8 place-items-center bg-paper text-ink font-display text-base">K</span>
+        <div
+          className={cn(
+            "flex items-center gap-3 border-b border-white/10 p-4",
+            collapsed && "justify-center",
+          )}
+        >
+          <span
+            aria-hidden
+            className="grid h-8 w-8 place-items-center bg-paper text-ink font-display text-base"
+          >
+            K
+          </span>
           {!collapsed && (
             <div className="leading-tight">
               <p className="font-display text-sm">KNA Admin</p>
-              <p className="text-[0.6rem] uppercase tracking-widest text-paper/50">Archive console</p>
+              <p className="text-[0.6rem] uppercase tracking-widest text-paper/50">
+                Archive console
+              </p>
             </div>
           )}
         </div>
@@ -94,16 +136,30 @@ function AdminLayout() {
               <Bell className="h-4 w-4" />
               <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-flag-red" />
             </button>
-            <Badge variant="outline" className="border-flag-red/40 bg-flag-red/5 text-flag-red text-[0.65rem] uppercase tracking-wider">
-              Super Administrator
+            <Badge
+              variant="outline"
+              className="border-flag-red/40 bg-flag-red/5 text-flag-red text-[0.65rem] uppercase tracking-wider"
+            >
+              {user ? (roleLabels[user.role] ?? user.role) : ""}
             </Badge>
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-ink text-paper grid place-items-center text-xs font-medium">JM</div>
+              <div className="h-8 w-8 rounded-full bg-ink text-paper grid place-items-center text-xs font-medium">
+                {initials}
+              </div>
               <div className="hidden text-xs sm:block">
-                <p className="font-medium leading-tight">J. Muthoni</p>
-                <p className="text-muted-foreground">Chief Archivist</p>
+                <p className="font-medium leading-tight">{user?.full_name}</p>
+                <p className="text-muted-foreground">{user?.email}</p>
               </div>
             </div>
+            <button
+              onClick={() => logout.mutate(undefined, { onSuccess: () => navigate({ to: "/" }) })}
+              disabled={logout.isPending}
+              className="rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+              aria-label="Sign out"
+              title="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </header>
         <main className="min-w-0 flex-1 bg-background p-6 md:p-10">

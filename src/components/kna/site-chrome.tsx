@@ -1,8 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { Search, User, ShoppingCart, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth/use-auth";
 
 export function SiteHeader() {
+  const { isAuthenticated } = useAuth();
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center gap-6 px-4 py-3 md:px-8 md:py-4">
@@ -51,14 +53,22 @@ export function SiteHeader() {
               <ShoppingCart className="h-4 w-4" />
             </Link>
           </Button>
-          <Button variant="ghost" size="icon" asChild aria-label="Account" className="hidden sm:inline-flex">
+          <Button
+            variant="ghost"
+            size="icon"
+            asChild
+            aria-label="Account"
+            className="hidden sm:inline-flex"
+          >
             <Link to="/account">
               <User className="h-4 w-4" />
             </Link>
           </Button>
-          <Button variant="outline" size="sm" asChild className="hidden md:inline-flex">
-            <Link to="/auth/login">Sign in</Link>
-          </Button>
+          {!isAuthenticated && (
+            <Button variant="outline" size="sm" asChild className="hidden md:inline-flex">
+              <Link to="/auth/login">Sign in</Link>
+            </Button>
+          )}
           <Button variant="ghost" size="icon" className="md:hidden" aria-label="Menu">
             <Menu className="h-4 w-4" />
           </Button>
@@ -75,14 +85,17 @@ export function SiteFooter() {
         <div className="grid gap-12 md:grid-cols-4">
           <div>
             <div className="flex items-center gap-2">
-              <span aria-hidden className="grid h-8 w-8 place-items-center bg-ink text-paper font-display text-base">
+              <span
+                aria-hidden
+                className="grid h-8 w-8 place-items-center bg-ink text-paper font-display text-base"
+              >
                 K
               </span>
               <span className="font-display text-lg">Kenya News Agency</span>
             </div>
             <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
-              A national photographic and press archive maintained by the
-              Ministry of Information, Communications and the Digital Economy.
+              A national photographic and press archive maintained by the Ministry of Information,
+              Communications and the Digital Economy.
             </p>
             <div className="mt-4 flex items-center gap-2" aria-hidden>
               <span className="h-1.5 w-6 bg-ink" />
