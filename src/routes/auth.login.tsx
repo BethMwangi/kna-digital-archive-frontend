@@ -25,7 +25,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/auth/login")({
-  head: () => ({ meta: [{ title: "Sign in — KNA Digital Archive" }] }),
+  head: () => ({ meta: [{ title: "Sign in — Urithi Digital Archive" }] }),
   validateSearch: (search) => searchSchema.parse(search),
   component: LoginPage,
 });
@@ -60,7 +60,7 @@ export function LoginPage() {
     <div>
       <p className="eyebrow">Access your account</p>
       <h1 className="mt-3 font-display text-4xl">Sign in</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Continue to your KNA archive account.</p>
+      <p className="mt-2 text-sm text-muted-foreground">Continue to your Urithi archive account.</p>
 
       {formError && (
         <Alert variant="destructive" className="mt-6">
@@ -113,7 +113,7 @@ export function LoginPage() {
           />
           <Button
             type="submit"
-            className="w-full rounded-none bg-ink text-paper hover:bg-ink/90"
+            className="w-full rounded-none bg-flag-green text-paper hover:bg-flag-green/90"
             size="lg"
             disabled={login.isPending}
           >

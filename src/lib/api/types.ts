@@ -52,3 +52,111 @@ export interface RefreshResult {
   access: string;
   refresh: string;
 }
+
+/** DRF pagination shape, nested inside `data` for enveloped list endpoints. */
+export interface Paginated<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
+/** Mirrors apps/assets/serializers.py CategorySerializer. */
+export interface CategoryOut {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+}
+
+/** Mirrors apps/assets/serializers.py CollectionSerializer. */
+export interface CollectionOut {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+}
+
+/** Mirrors apps/assets/serializers.py TagSerializer. */
+export interface TagOut {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface AssetMetadataOut {
+  keywords: string;
+  location: string;
+  county: string;
+  country: string;
+  event_name: string;
+  historical_period: string;
+  headline: string;
+  language: string;
+}
+
+export interface AssetVariantPublicOut {
+  id: string;
+  variant_name: string;
+  mime_type: string;
+  file_size: number;
+}
+
+/** DigitalAssetListSerializer — lightweight grid-card shape, no metadata/variants. */
+export interface AssetListItem {
+  id: string;
+  asset_number: string;
+  title: string;
+  asset_type: string;
+  status: string;
+  visibility: string;
+  category: CategoryOut | null;
+  collection: CollectionOut | null;
+  tags: TagOut[];
+  photographer: string;
+  publication_date: string | null;
+  created_at: string;
+  /** Watermarked, small — for listing grids. */
+  thumbnail: string;
+  /** Flat per-asset price — no resolution tiers. */
+  price: number;
+  currency: string;
+}
+
+/** DigitalAssetDetailSerializer — full detail/buy page shape. */
+export interface AssetDetail extends AssetListItem {
+  description: string;
+  caption: string;
+  photographer_credit: string;
+  source: string;
+  copyright_holder: string;
+  capture_date: string | null;
+  metadata: AssetMetadataOut | null;
+  variants: AssetVariantPublicOut[];
+  /** Watermarked preview, large — detail page hero. */
+  image: string;
+  updated_at: string;
+}
+
+/** GET /licenses/ — 4 fixed license types (Editorial/Commercial/Educational/Government). */
+export interface LicenseOut {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+}
+
+/** The asset fields nested directly in a cart item — no extra round-trip needed. */
+export interface CartItemAssetOut {
+  id: string;
+  title: string;
+  thumbnail: string;
+  price: number;
+}
+
+export interface CartItemOut {
+  id: string;
+  asset: CartItemAssetOut;
+  license: LicenseOut;
+  subtotal: number;
+}

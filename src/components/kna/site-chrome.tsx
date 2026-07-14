@@ -1,26 +1,20 @@
 import { Link } from "@tanstack/react-router";
 import { Search, User, ShoppingCart, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/lib/auth/use-auth";
+import { UrithiLogo } from "@/components/kna/logo";
 
 export function SiteHeader() {
-  const { isAuthenticated } = useAuth();
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
+      <div aria-hidden className="flex h-1 w-full">
+        <span className="flex-1 bg-ink" />
+        <span className="flex-1 bg-flag-red" />
+        <span className="flex-1 bg-flag-green" />
+      </div>
       <div className="mx-auto flex max-w-7xl items-center gap-6 px-4 py-3 md:px-8 md:py-4">
-        <Link to="/" className="flex items-center gap-3 shrink-0">
-          <span
-            aria-hidden
-            className="grid h-9 w-9 place-items-center bg-ink text-paper font-display text-lg leading-none"
-          >
-            K
-          </span>
-          <span className="hidden sm:flex flex-col leading-tight">
-            <span className="font-display text-base font-semibold tracking-tight">
-              Kenya News Agency
-            </span>
-            <span className="eyebrow !text-[0.6rem]">Digital Archive</span>
-          </span>
+        <Link to="/" className="flex items-center gap-3 shrink-0" aria-label="Urithi home">
+          <UrithiLogo className="h-72 w-auto sm:h-28" />
+          <span className="sr-only">Urithi — by Kenya News Agency · Digital Archive</span>
         </Link>
 
         <nav className="ml-4 hidden md:flex items-center gap-6 text-sm">
@@ -64,11 +58,9 @@ export function SiteHeader() {
               <User className="h-4 w-4" />
             </Link>
           </Button>
-          {!isAuthenticated && (
-            <Button variant="outline" size="sm" asChild className="hidden md:inline-flex">
-              <Link to="/auth/login">Sign in</Link>
-            </Button>
-          )}
+          <Button variant="outline" size="sm" asChild className="hidden md:inline-flex">
+            <Link to="/auth/login">Sign in</Link>
+          </Button>
           <Button variant="ghost" size="icon" className="md:hidden" aria-label="Menu">
             <Menu className="h-4 w-4" />
           </Button>
@@ -84,23 +76,15 @@ export function SiteFooter() {
       <div className="mx-auto max-w-7xl px-4 py-14 md:px-8">
         <div className="grid gap-12 md:grid-cols-4">
           <div>
-            <div className="flex items-center gap-2">
-              <span
-                aria-hidden
-                className="grid h-8 w-8 place-items-center bg-ink text-paper font-display text-base"
-              >
-                K
-              </span>
-              <span className="font-display text-lg">Kenya News Agency</span>
-            </div>
+            <UrithiLogo className="h-50 w-auto" />
             <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
-              A national photographic and press archive maintained by the Ministry of Information,
-              Communications and the Digital Economy.
+              Urithi is the national photographic and press archive of the Kenya News Agency,
+              maintained by the Ministry of Information, Communications and the Digital Economy.
             </p>
             <div className="mt-4 flex items-center gap-2" aria-hidden>
               <span className="h-1.5 w-6 bg-ink" />
               <span className="h-1.5 w-6 bg-flag-red" />
-              <span className="h-1.5 w-6 bg-[oklch(0.55_0.14_150)]" />
+              <span className="h-1.5 w-6 bg-flag-green" />
               <span className="h-1.5 w-6 bg-paper border border-border" />
             </div>
           </div>
@@ -114,11 +98,17 @@ export function SiteFooter() {
           />
           <FooterCol
             title="Institution"
-            links={["About KNA", "Contact", "Press office", "Accessibility"]}
+            links={[
+              "About Urithi",
+              "Kenya News Agency",
+              "Contact",
+              "Press office",
+              "Accessibility",
+            ]}
           />
         </div>
         <div className="mt-12 flex flex-col gap-2 border-t border-border pt-6 text-xs text-muted-foreground md:flex-row md:justify-between">
-          <p>© {new Date().getFullYear()} Kenya News Agency. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Urithi · Kenya News Agency. All rights reserved.</p>
           <p>Nairobi · Kenya · ISO 27001 archival standards</p>
         </div>
       </div>

@@ -4,10 +4,17 @@ import { LicenseBadge } from "@/components/kna/components";
 import { assets } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/account/downloads")({
-  head: () => ({ meta: [{ title: "My downloads — KNA account" }] }),
+  head: () => ({ meta: [{ title: "My downloads — Urithi account" }] }),
   component: Downloads,
 });
 
@@ -17,7 +24,9 @@ function Downloads() {
     <div>
       <p className="eyebrow">Licensed records</p>
       <h1 className="mt-2 font-display text-4xl">My downloads</h1>
-      <p className="mt-2 text-sm text-muted-foreground">All watermark-free files you're licensed to use.</p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        All watermark-free files you're licensed to use.
+      </p>
 
       <div className="mt-8 overflow-hidden border border-border">
         <Table>
@@ -37,7 +46,7 @@ function Downloads() {
                 <TableRow key={i}>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div className="watermark h-12 w-16 shrink-0 overflow-hidden bg-ink">
+                      <div className="watermark-sm h-12 w-16 shrink-0 overflow-hidden bg-ink">
                         <img src={asset.image} alt="" className="bw h-full w-full object-cover" />
                       </div>
                       <div className="min-w-0">
@@ -46,7 +55,9 @@ function Downloads() {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell><LicenseBadge type={it.license} /></TableCell>
+                  <TableCell>
+                    <LicenseBadge type={it.license} />
+                  </TableCell>
                   <TableCell className="tabular-nums text-sm">{5 - i} of 5</TableCell>
                   <TableCell className="text-sm text-muted-foreground">2026-12-31</TableCell>
                   <TableCell className="text-right">

@@ -6,15 +6,32 @@ import {
   CollectionCard,
   SearchBar,
   SectionHeader,
+  type AssetCardData,
 } from "@/components/kna/components";
-import { assets, categories, collections } from "@/lib/mock-data";
+import { categories, collections } from "@/lib/mock-data";
+import { useAssets, useFeaturedAssets } from "@/hooks/use-assets";
+import type { AssetListItem } from "@/lib/api/types";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, ArrowUpRight, Search, ShoppingBag, Download } from "lucide-react";
+import heroImage from "@/assets/hero.jpg";
+
+// Backend has no slug field yet — route by id (see src/lib/api/assets.ts).
+function toCard(a: AssetListItem): AssetCardData {
+  return {
+    id: a.id,
+    slug: a.id,
+    title: a.title,
+    image: a.thumbnail,
+    year: a.publication_date?.slice(0, 4) ?? a.created_at.slice(0, 4),
+    category: a.category?.name ?? "Uncategorised",
+  };
+}
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Kenya News Agency Digital Archive — Kenya's history, preserved and licensed" },
+      { title: "Urithi — Kenya's history, preserved and licensed" },
       {
         name: "description",
         content:
@@ -26,32 +43,40 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const hero = assets[0];
-  const featured = assets.slice(0, 8);
+  const { data: featuredAssets, isPending, isError } = useFeaturedAssets();
+  // Real Collections aren't seeded on the backend yet (see src/lib/api/assets.ts
+  // notes), so we keep the curated titles/blurbs but swap each placeholder
+  // Unsplash cover for a real archive photo once one is available.
+  const { data: assetsPage } = useAssets({ page: 1 });
+  const realPhotos = assetsPage?.results ?? [];
+  const collectionsWithRealCovers = collections.map((c, i) => ({
+    ...c,
+    cover: realPhotos.length ? realPhotos[i % realPhotos.length].thumbnail : c.cover,
+  }));
   return (
     <SiteShell>
       {/* HERO */}
       <section className="relative overflow-hidden border-b border-border bg-ink text-paper">
         <img
-          src={hero.image}
+          src={heroImage}
           alt=""
           aria-hidden
-          className="bw absolute inset-0 h-full w-full object-cover opacity-45"
+          className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-ink/50 via-ink/60 to-ink/85" />
-        <div className="watermark relative mx-auto grid max-w-7xl gap-10 px-4 py-20 md:px-8 md:py-32 lg:grid-cols-12">
+        <div className="absolute inset-0 bg-gradient-to-b from-ink/10 via-ink/20 to-ink/60" />
+        <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-20 md:px-8 md:py-32 lg:grid-cols-12">
           <div className="relative z-10 lg:col-span-8">
-            <p className="eyebrow !text-paper/70">Established 1963 · National archive</p>
-            <h1 className="mt-4 font-display text-4xl leading-[1.05] md:text-6xl lg:text-7xl">
-              Kenya's history,{" "}
-              <span className="italic text-paper/85">preserved</span> and
-              licensed.
-            </h1>
-            <p className="mt-6 max-w-2xl text-base text-paper/80 md:text-lg">
-              Six decades of state photography, wire copy and audiovisual
-              records — indexed, catalogued and available for editorial,
-              commercial, educational and government use.
-            </p>
+            <div className="inline-block max-w-2xl rounded-2xl bg-ink/55 p-6 backdrop-blur-sm md:p-8">
+              <p className="eyebrow !text-paper/70">Established 1963 · National archive</p>
+              <h1 className="mt-4 font-display text-4xl leading-[1.05] md:text-6xl lg:text-7xl">
+                Kenya's history, <span className="italic text-paper/85">preserved</span> and
+                licensed.
+              </h1>
+              <p className="mt-6 text-base text-paper/80 md:text-lg">
+                Six decades of state photography, wire copy and audiovisual records — indexed,
+                catalogued and available for editorial, commercial, educational and government use.
+              </p>
+            </div>
             <div className="mt-8 max-w-2xl bg-paper text-foreground shadow-2xl">
               <SearchBar size="lg" />
             </div>
@@ -59,24 +84,12 @@ function HomePage() {
               {["Independence", "Kenyatta", "Wildlife", "Nairobi 1970s", "Kip Keino"].map((t) => (
                 <button
                   key={t}
-                  className="rounded-full border border-paper/25 px-3 py-1 text-xs text-paper/80 backdrop-blur hover:border-paper/60 hover:text-paper"
+                  className="rounded-full border border-paper/25 bg-ink/40 px-3 py-1 text-xs text-paper/80 backdrop-blur hover:border-paper/60 hover:text-paper"
                 >
                   {t}
                 </button>
               ))}
             </div>
-          </div>
-          <div className="relative z-10 hidden self-end border-l border-paper/20 pl-8 lg:col-span-4 lg:block">
-            <p className="eyebrow !text-paper/70">Current record</p>
-            <p className="mt-3 font-display text-lg leading-snug text-paper">
-              {hero.title}
-            </p>
-            <dl className="mt-5 space-y-2 text-xs text-paper/70">
-              <Row k="Photographer" v={hero.photographer} />
-              <Row k="Date" v={hero.date} />
-              <Row k="Location" v={hero.location} />
-              <Row k="Collection" v={hero.collection} />
-            </dl>
           </div>
         </div>
       </section>
@@ -85,7 +98,7 @@ function HomePage() {
       <section className="mx-auto max-w-7xl px-4 py-20 md:px-8">
         <SectionHeader
           eyebrow="Featured collections"
-          title="Curated by KNA archivists"
+          title="Curated by Urithi archivists"
           action={
             <Link
               to="/browse"
@@ -96,7 +109,7 @@ function HomePage() {
           }
         />
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
-          {collections.map((c) => (
+          {collectionsWithRealCovers.map((c) => (
             <CollectionCard key={c.id} collection={c} />
           ))}
         </div>
@@ -115,11 +128,25 @@ function HomePage() {
             </Button>
           }
         />
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {featured.map((a) => (
-            <AssetCard key={a.id} asset={a} />
-          ))}
-        </div>
+        {isError ? (
+          <p className="text-sm text-muted-foreground">Couldn't load the latest records.</p>
+        ) : isPending ? (
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i}>
+                <Skeleton className="aspect-[4/3] w-full" />
+                <Skeleton className="mt-3 h-4 w-2/3" />
+                <Skeleton className="mt-2 h-4 w-1/3" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {(featuredAssets ?? []).map((a) => (
+              <AssetCard key={a.id} asset={toCard(a)} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Categories */}
@@ -148,7 +175,7 @@ function HomePage() {
                 n: "02",
                 icon: ShoppingBag,
                 title: "License & buy",
-                body: "Choose the resolution and license that fits your use. Pay in KES via M-Pesa, eCitizen, Visa or Mastercard.",
+                body: "Choose the resolution and license that fits your use. Pay in KES via M-Pesa, eCitizen.",
               },
               {
                 n: "03",
@@ -170,14 +197,5 @@ function HomePage() {
         </div>
       </section>
     </SiteShell>
-  );
-}
-
-function Row({ k, v }: { k: string; v: string }) {
-  return (
-    <div className="flex justify-between gap-4">
-      <dt className="text-paper/50">{k}</dt>
-      <dd className="text-right text-paper/90">{v}</dd>
-    </div>
   );
 }

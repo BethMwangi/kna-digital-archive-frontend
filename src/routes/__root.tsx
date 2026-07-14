@@ -8,10 +8,10 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { AuthProvider } from "../lib/auth/auth-provider";
 
 function NotFoundComponent() {
   return (
@@ -78,14 +78,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Kenya News Agency Digital Archive — Historical Photographs & Licensing" },
+      { title: "Urithi — Kenya News Agency Digital Archive · Historical Photographs & Licensing" },
       {
         name: "description",
         content:
-          "Browse, license and download historical photographs, newspapers and audiovisual records from the Kenya News Agency national archive.",
+          "Urithi, the Kenya News Agency digital archive. Browse, license and download historical photographs, newspapers and audiovisual records from Kenya's national press archive.",
       },
-      { name: "author", content: "Kenya News Agency" },
-      { property: "og:title", content: "Kenya News Agency Digital Archive" },
+      { name: "author", content: "Urithi · Kenya News Agency" },
+      { property: "og:title", content: "Urithi — Kenya News Agency Digital Archive" },
       {
         property: "og:description",
         content:
@@ -130,9 +130,8 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Outlet />
-      </AuthProvider>
+      <Outlet />
+      <Toaster position="top-center" richColors />
     </QueryClientProvider>
   );
 }

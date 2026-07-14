@@ -1,30 +1,30 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteShell } from "@/components/kna/site-shell";
-import { LicenseBadge } from "@/components/kna/components";
-import { assets, formatKES } from "@/lib/mock-data";
+import { formatKES } from "@/lib/mock-data";
+import { useCart } from "@/hooks/use-cart";
+import { RequireAuth } from "@/lib/auth/protected-route";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { Check, Lock } from "lucide-react";
 
 export const Route = createFileRoute("/checkout")({
-  head: () => ({ meta: [{ title: "Checkout — KNA Digital Archive" }] }),
-  component: CheckoutPage,
+  head: () => ({ meta: [{ title: "Checkout — Urithi Digital Archive" }] }),
+  component: () => (
+    <RequireAuth>
+      <CheckoutPage />
+    </RequireAuth>
+  ),
 });
-
-const cart = [
-  { asset: assets[0], license: "Editorial" as const, tier: "Print", price: 4500 },
-  { asset: assets[6], license: "Commercial" as const, tier: "Archive", price: 12800 },
-  { asset: assets[2], license: "Editorial" as const, tier: "Web", price: 1800 },
-];
 
 function CheckoutPage() {
   const [done, setDone] = useState(false);
-  const [method, setMethod] = useState("mpesa");
-  const subtotal = cart.reduce((s, l) => s + l.price, 0);
+  const { data: items, isPending } = useCart();
+  const subtotal = (items ?? []).reduce((s, i) => s + i.subtotal, 0);
   const vat = Math.round(subtotal * 0.16);
   const total = subtotal + vat;
 
@@ -42,50 +42,49 @@ function CheckoutPage() {
             <section>
               <SectionTitle n="01" title="Order review" />
               <div className="mt-4 border border-border">
-                {cart.map((l, i) => (
-                  <div key={i} className="flex items-center gap-4 border-b border-border p-4 last:border-b-0">
-                    <div className="watermark h-16 w-20 shrink-0 overflow-hidden bg-ink">
-                      <img src={l.asset.image} alt="" className="bw h-full w-full object-cover" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="line-clamp-1 text-sm font-medium">{l.asset.title}</p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <LicenseBadge type={l.license} />
-                        <span className="text-xs text-muted-foreground">{l.tier}</span>
-                      </div>
-                    </div>
-                    <p className="tabular-nums text-sm">{formatKES(l.price)}</p>
+                {isPending ? (
+                  <div className="space-y-2 p-4">
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-16 w-full" />
                   </div>
-                ))}
+                ) : (
+                  (items ?? []).map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-4 border-b border-border p-4 last:border-b-0"
+                    >
+                      <div className="watermark-sm h-16 w-20 shrink-0 overflow-hidden bg-ink">
+                        <img
+                          src={item.asset.thumbnail}
+                          alt=""
+                          className="bw h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="line-clamp-1 text-sm font-medium">{item.asset.title}</p>
+                        <div className="mt-1 flex items-center gap-2">
+                          <Badge variant="outline">{item.license.name}</Badge>
+                        </div>
+                      </div>
+                      <p className="tabular-nums text-sm">{formatKES(item.subtotal)}</p>
+                    </div>
+                  ))
+                )}
               </div>
             </section>
 
             {/* Payment */}
             <section>
               <SectionTitle n="02" title="Payment method" />
-              <RadioGroup value={method} onValueChange={setMethod} className="mt-4 grid gap-3 sm:grid-cols-2">
-                {[
-                  { id: "ecitizen", label: "eCitizen", sub: "Government portal" },
-                  { id: "mpesa", label: "M-Pesa", sub: "Safaricom mobile money" },
-                  { id: "visa", label: "Visa", sub: "Credit / debit card" },
-                  { id: "mc", label: "Mastercard", sub: "Credit / debit card" },
-                ].map((p) => (
-                  <label
-                    key={p.id}
-                    htmlFor={`pm-${p.id}`}
-                    className="flex cursor-pointer items-center gap-3 border border-border bg-background p-4 has-[[data-state=checked]]:border-ink has-[[data-state=checked]]:ring-1 has-[[data-state=checked]]:ring-ink"
-                  >
-                    <RadioGroupItem id={`pm-${p.id}`} value={p.id} />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-display text-lg">{p.label}</p>
-                      <p className="text-xs text-muted-foreground">{p.sub}</p>
-                    </div>
-                    <div className="h-8 w-14 border border-border bg-paper-warm grid place-items-center text-[0.6rem] font-semibold uppercase tracking-widest text-muted-foreground">
-                      Logo
-                    </div>
-                  </label>
-                ))}
-              </RadioGroup>
+              <div className="mt-4 flex items-center gap-3 border border-ink bg-background p-4 ring-1 ring-ink">
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-lg">eCitizen</p>
+                  <p className="text-xs text-muted-foreground">Government payment portal</p>
+                </div>
+                <div className="h-8 w-14 border border-border bg-paper-warm grid place-items-center text-[0.6rem] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Logo
+                </div>
+              </div>
             </section>
 
             {/* Billing */}
@@ -96,8 +95,16 @@ function CheckoutPage() {
                 <Field label="Last name" defaultValue="Kamau" />
                 <Field label="Email" type="email" defaultValue="wanjiku@example.co.ke" />
                 <Field label="Phone" defaultValue="+254 712 000 000" />
-                <Field label="Organisation (optional)" defaultValue="Nation Media Group" className="sm:col-span-2" />
-                <Field label="Address" defaultValue="P.O. Box 49010, Nairobi" className="sm:col-span-2" />
+                <Field
+                  label="Organisation (optional)"
+                  defaultValue="Nation Media Group"
+                  className="sm:col-span-2"
+                />
+                <Field
+                  label="Address"
+                  defaultValue="P.O. Box 49010, Nairobi"
+                  className="sm:col-span-2"
+                />
                 <Field label="City" defaultValue="Nairobi" />
                 <Field label="Postal code" defaultValue="00100" />
               </div>
@@ -105,7 +112,9 @@ function CheckoutPage() {
               <div className="mt-6 flex items-start gap-3 border border-border bg-paper-warm p-4">
                 <Checkbox id="terms" className="mt-0.5" />
                 <Label htmlFor="terms" className="text-xs leading-relaxed text-muted-foreground">
-                  I agree to the KNA <a className="underline">Licensing Terms</a> and confirm I have read the usage rights for each selected license type. Records are non-transferable and use outside declared license scope is prohibited.
+                  I agree to the Urithi <a className="underline">Licensing Terms</a> and confirm I
+                  have read the usage rights for each selected license type. Records are
+                  non-transferable and use outside declared license scope is prohibited.
                 </Label>
               </div>
             </section>
@@ -119,16 +128,18 @@ function CheckoutPage() {
               <dl className="mt-4 space-y-2 text-sm">
                 <Row k="Subtotal" v={formatKES(subtotal)} />
                 <Row k="VAT (16%)" v={formatKES(vat)} />
-                <Row k="Records" v={String(cart.length)} />
+                <Row k="Records" v={String((items ?? []).length)} />
               </dl>
               <Button
-                className="mt-6 w-full rounded-none bg-ink text-paper hover:bg-ink/90"
+                className="mt-6 w-full rounded-none bg-flag-green text-paper hover:bg-flag-green/90"
                 size="lg"
                 onClick={() => setDone(true)}
               >
                 <Lock className="mr-2 h-4 w-4" /> Pay {formatKES(total)}
               </Button>
-              <p className="mt-3 text-center text-xs text-muted-foreground">Secured with TLS 1.3 · PCI DSS compliant</p>
+              <p className="mt-3 text-center text-xs text-muted-foreground">
+                Secured with TLS 1.3 · PCI DSS compliant
+              </p>
             </div>
           </aside>
         </div>
@@ -151,9 +162,13 @@ function SuccessScreen({ total }: { total: number }) {
         </p>
         <div className="mt-8 inline-block border border-border bg-paper-warm px-8 py-6 text-left">
           <p className="eyebrow">Order number</p>
-          <p className="mt-1 font-display text-2xl">KNA-2024-00913</p>
-          <p className="mt-3 text-sm text-muted-foreground">Total paid <span className="tabular-nums text-foreground">{formatKES(total)}</span></p>
-          <p className="mt-1 text-sm text-muted-foreground">Receipt sent to wanjiku@example.co.ke</p>
+          <p className="mt-1 font-display text-2xl">Urithi-2024-00913</p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Total paid <span className="tabular-nums text-foreground">{formatKES(total)}</span>
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Receipt sent to wanjiku@example.co.ke
+          </p>
         </div>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Button asChild size="lg" className="rounded-none bg-ink text-paper hover:bg-ink/90">
@@ -176,11 +191,17 @@ function SectionTitle({ n, title }: { n: string; title: string }) {
     </div>
   );
 }
-function Field({ label, className, ...rest }: React.ComponentProps<typeof Input> & { label: string }) {
+function Field({
+  label,
+  className,
+  ...rest
+}: React.ComponentProps<typeof Input> & { label: string }) {
   const id = `f-${label}`;
   return (
     <div className={className}>
-      <Label htmlFor={id} className="text-xs">{label}</Label>
+      <Label htmlFor={id} className="text-xs">
+        {label}
+      </Label>
       <Input id={id} {...rest} className="mt-1.5" />
     </div>
   );

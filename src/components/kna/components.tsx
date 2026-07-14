@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import type { Asset, Collection, LicenseType, OrderStatus } from "@/lib/mock-data";
+import type { Collection, LicenseType, OrderStatus } from "@/lib/mock-data";
 import { formatKES } from "@/lib/mock-data";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -32,7 +32,22 @@ export function WatermarkImage({
 }
 
 /* ---------- AssetCard ---------- */
-export function AssetCard({ asset }: { asset: Asset }) {
+/**
+ * Loosened beyond the mock `Asset` shape so real API assets (no slug/price
+ * yet — see src/lib/api/assets.ts) can render here too; only `priceFrom` is
+ * optional so the price block can be omitted for them.
+ */
+export interface AssetCardData {
+  id: string;
+  slug: string;
+  title: string;
+  image: string;
+  year: string | number;
+  category: string;
+  priceFrom?: number;
+}
+
+export function AssetCard({ asset }: { asset: AssetCardData }) {
   return (
     <Link
       to="/asset/$slug"
@@ -51,10 +66,12 @@ export function AssetCard({ asset }: { asset: Asset }) {
             {asset.title}
           </h3>
         </div>
-        <div className="shrink-0 text-right">
-          <p className="eyebrow !text-[0.6rem]">From</p>
-          <p className="font-medium tabular-nums">{formatKES(asset.priceFrom)}</p>
-        </div>
+        {typeof asset.priceFrom === "number" && (
+          <div className="shrink-0 text-right">
+            <p className="eyebrow !text-[0.6rem]">From</p>
+            <p className="font-medium tabular-nums">{formatKES(asset.priceFrom)}</p>
+          </div>
+        )}
       </div>
     </Link>
   );
@@ -101,10 +118,7 @@ export function CategoryPill({
 /* ---------- CollectionCard ---------- */
 export function CollectionCard({ collection }: { collection: Collection }) {
   return (
-    <Link
-      to="/browse"
-      className="group relative block overflow-hidden aspect-[4/5]"
-    >
+    <Link to="/browse" className="group relative block overflow-hidden aspect-[4/5]">
       <img
         src={collection.cover}
         alt={collection.title}
@@ -113,7 +127,9 @@ export function CollectionCard({ collection }: { collection: Collection }) {
       />
       <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/40 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 p-5 text-paper">
-        <p className="eyebrow !text-paper/70">Collection · {collection.count.toLocaleString()} assets</p>
+        <p className="eyebrow !text-paper/70">
+          Collection · {collection.count.toLocaleString()} assets
+        </p>
         <h3 className="mt-2 font-display text-2xl leading-tight">{collection.title}</h3>
         <p className="mt-1 text-sm text-paper/80 line-clamp-2">{collection.blurb}</p>
       </div>
@@ -125,7 +141,8 @@ export function CollectionCard({ collection }: { collection: Collection }) {
 const licenseStyles: Record<LicenseType, string> = {
   Editorial: "border-foreground/30 text-foreground",
   Commercial: "border-primary/40 text-primary bg-primary/5",
-  Educational: "border-[oklch(0.55_0.14_150)]/40 text-[oklch(0.4_0.14_150)] bg-[oklch(0.55_0.14_150)]/5",
+  Educational:
+    "border-[oklch(0.55_0.14_150)]/40 text-[oklch(0.4_0.14_150)] bg-[oklch(0.55_0.14_150)]/5",
   Government: "border-flag-red/40 text-flag-red bg-flag-red/5",
   "Internal Use": "border-muted-foreground/30 text-muted-foreground",
 };
@@ -177,7 +194,11 @@ export function SearchBar({
           )}
         />
         {action ?? (
-          <Button type="submit" size={size === "lg" ? "lg" : "default"} className="rounded-none bg-ink text-paper hover:bg-ink/90">
+          <Button
+            type="submit"
+            size={size === "lg" ? "lg" : "default"}
+            className="rounded-none bg-flag-green text-paper hover:bg-flag-green/90"
+          >
             Search
           </Button>
         )}
@@ -232,7 +253,8 @@ const orderStyles: Record<OrderStatus, string> = {
   Paid: "bg-primary/10 text-primary border-primary/20",
   Cancelled: "bg-muted text-muted-foreground border-border",
   Refunded: "bg-flag-red/10 text-flag-red border-flag-red/30",
-  Completed: "bg-[oklch(0.55_0.14_150)]/10 text-[oklch(0.35_0.14_150)] border-[oklch(0.55_0.14_150)]/30",
+  Completed:
+    "bg-[oklch(0.55_0.14_150)]/10 text-[oklch(0.35_0.14_150)] border-[oklch(0.55_0.14_150)]/30",
 };
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {
   return (

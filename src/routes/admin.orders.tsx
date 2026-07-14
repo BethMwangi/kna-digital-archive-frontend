@@ -1,15 +1,38 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { orders, formatKES } from "@/lib/mock-data";
 import { OrderStatusBadge } from "@/components/kna/components";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Search } from "lucide-react";
 
 export const Route = createFileRoute("/admin/orders")({
-  head: () => ({ meta: [{ title: "Orders — KNA Admin" }] }),
+  head: () => ({ meta: [{ title: "Orders — Urithi Admin" }] }),
   component: AdminOrders,
 });
 
@@ -28,16 +51,22 @@ function AdminOrders() {
           <Input placeholder="Search by order number, email…" className="pl-9 bg-background" />
         </div>
         <Select defaultValue="all">
-          <SelectTrigger className="w-[160px] bg-background"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-[160px] bg-background">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
             {["Pending", "Paid", "Cancelled", "Refunded", "Completed"].map((s) => (
-              <SelectItem key={s} value={s}>{s}</SelectItem>
+              <SelectItem key={s} value={s}>
+                {s}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Select defaultValue="30">
-          <SelectTrigger className="w-[160px] bg-background"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-[160px] bg-background">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="7">Last 7 days</SelectItem>
             <SelectItem value="30">Last 30 days</SelectItem>
@@ -64,23 +93,38 @@ function AdminOrders() {
                 <TableCell className="font-medium">{o.number}</TableCell>
                 <TableCell className="text-muted-foreground text-sm">{o.date}</TableCell>
                 <TableCell className="text-sm">wanjiku@example.co.ke</TableCell>
-                <TableCell><OrderStatusBadge status={o.status} /></TableCell>
-                <TableCell className="text-right tabular-nums font-medium">{formatKES(o.total)}</TableCell>
+                <TableCell>
+                  <OrderStatusBadge status={o.status} />
+                </TableCell>
+                <TableCell className="text-right tabular-nums font-medium">
+                  {formatKES(o.total)}
+                </TableCell>
                 <TableCell className="text-right">
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button size="sm" variant="outline" className="text-flag-red border-flag-red/30 hover:bg-flag-red/5">Refund</Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-flag-red border-flag-red/30 hover:bg-flag-red/5"
+                      >
+                        Refund
+                      </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle className="font-display text-2xl">Refund {o.number}?</AlertDialogTitle>
+                        <AlertDialogTitle className="font-display text-2xl">
+                          Refund {o.number}?
+                        </AlertDialogTitle>
                         <AlertDialogDescription>
-                          This will reverse the full amount ({formatKES(o.total)}) to the customer's original payment method and revoke all associated download rights.
+                          This will reverse the full amount ({formatKES(o.total)}) to the customer's
+                          original payment method and revoke all associated download rights.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction className="bg-flag-red hover:bg-flag-red/90">Confirm refund</AlertDialogAction>
+                        <AlertDialogAction className="bg-flag-red hover:bg-flag-red/90">
+                          Confirm refund
+                        </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>

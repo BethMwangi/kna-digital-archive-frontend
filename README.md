@@ -1,6 +1,6 @@
-# KNA Digital Archive Frontend
+# Urithi Digital Archive Frontend
 
-Frontend for the KNA Digital Archive, built with [TanStack Start](https://tanstack.com/start), Vite, React 19, and Tailwind CSS.
+Frontend for the Urithi Digital Archive, built with [TanStack Start](https://tanstack.com/start), Vite, React 19, and Tailwind CSS.
 
 ## Prerequisites
 

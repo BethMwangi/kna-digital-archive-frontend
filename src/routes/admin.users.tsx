@@ -75,7 +75,7 @@ import { applyApiErrorToForm } from "@/lib/api/form-errors";
 import type { AccountStatus, Role, User } from "@/lib/api/types";
 
 export const Route = createFileRoute("/admin/users")({
-  head: () => ({ meta: [{ title: "Users — KNA Admin" }] }),
+  head: () => ({ meta: [{ title: "Users — Urithi Admin" }] }),
   component: AdminUsers,
 });
 
@@ -598,7 +598,7 @@ function InviteDialog({ canAssignAdminRoles }: { canAssignAdminRoles: boolean })
                 <FormItem>
                   <FormLabel>Work email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="name@kna.go.ke" {...field} />
+                    <Input type="email" placeholder="name@urithi.co.ke" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

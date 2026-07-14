@@ -22,7 +22,7 @@ import { useRegister } from "@/hooks/use-auth-mutations";
 import { applyApiErrorToForm } from "@/lib/api/form-errors";
 
 export const Route = createFileRoute("/auth/register")({
-  head: () => ({ meta: [{ title: "Create account — KNA Digital Archive" }] }),
+  head: () => ({ meta: [{ title: "Create account — Urithi Digital Archive" }] }),
   component: RegisterPage,
 });
 
@@ -203,7 +203,7 @@ function RegisterPage() {
 
           <Button
             type="submit"
-            className="w-full rounded-none bg-ink text-paper hover:bg-ink/90"
+            className="w-full rounded-none bg-flag-green text-paper hover:bg-flag-green/90"
             size="lg"
             disabled={register.isPending}
           >

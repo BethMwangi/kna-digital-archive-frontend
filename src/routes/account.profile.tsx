@@ -22,7 +22,7 @@ import { useMe, useUpdateProfile } from "@/hooks/use-account";
 import { applyApiErrorToForm } from "@/lib/api/form-errors";
 
 export const Route = createFileRoute("/account/profile")({
-  head: () => ({ meta: [{ title: "Profile — KNA account" }] }),
+  head: () => ({ meta: [{ title: "Profile — Urithi account" }] }),
   component: Profile,
 });
 

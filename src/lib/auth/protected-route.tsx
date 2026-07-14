@@ -45,7 +45,7 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
           <p className="eyebrow">Access denied</p>
           <h1 className="mt-3 font-display text-3xl">You don't have access to this area</h1>
           <p className="mt-3 text-sm text-muted-foreground">
-            This section is limited to KNA staff accounts.
+            This section is limited to Urithi staff accounts.
           </p>
         </div>
       </div>

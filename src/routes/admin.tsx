@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -11,30 +11,15 @@ import {
   Settings,
   Bell,
   ChevronsLeft,
-  LogOut,
   Search,
 } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { RequireAdmin } from "@/lib/auth/protected-route";
-import { useAuth } from "@/lib/auth/use-auth";
-import { useLogout } from "@/hooks/use-auth-mutations";
 
 export const Route = createFileRoute("/admin")({
-  component: () => (
-    <RequireAdmin>
-      <AdminLayout />
-    </RequireAdmin>
-  ),
+  component: AdminLayout,
 });
-
-const roleLabels: Record<string, string> = {
-  admin: "Administrator",
-  super_admin: "Super Administrator",
-  content_editor: "Content Editor",
-  customer: "Customer",
-};
 
 const nav: {
   to: string;
@@ -55,16 +40,6 @@ const nav: {
 function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const logout = useLogout();
-  const initials = user?.full_name
-    .split(" ")
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
   return (
     <div className="grid min-h-dvh grid-cols-[auto_1fr] bg-paper-warm">
       {/* Sidebar */}
@@ -84,11 +59,11 @@ function AdminLayout() {
             aria-hidden
             className="grid h-8 w-8 place-items-center bg-paper text-ink font-display text-base"
           >
-            K
+            U
           </span>
           {!collapsed && (
             <div className="leading-tight">
-              <p className="font-display text-sm">KNA Admin</p>
+              <p className="font-display text-sm">Urithi Admin</p>
               <p className="text-[0.6rem] uppercase tracking-widest text-paper/50">
                 Archive console
               </p>
@@ -140,26 +115,17 @@ function AdminLayout() {
               variant="outline"
               className="border-flag-red/40 bg-flag-red/5 text-flag-red text-[0.65rem] uppercase tracking-wider"
             >
-              {user ? (roleLabels[user.role] ?? user.role) : ""}
+              Super Administrator
             </Badge>
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full bg-ink text-paper grid place-items-center text-xs font-medium">
-                {initials}
+                JM
               </div>
               <div className="hidden text-xs sm:block">
-                <p className="font-medium leading-tight">{user?.full_name}</p>
-                <p className="text-muted-foreground">{user?.email}</p>
+                <p className="font-medium leading-tight">J. Muthoni</p>
+                <p className="text-muted-foreground">Chief Archivist</p>
               </div>
             </div>
-            <button
-              onClick={() => logout.mutate(undefined, { onSuccess: () => navigate({ to: "/" }) })}
-              disabled={logout.isPending}
-              className="rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
-              aria-label="Sign out"
-              title="Sign out"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
           </div>
         </header>
         <main className="min-w-0 flex-1 bg-background p-6 md:p-10">

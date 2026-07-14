@@ -21,7 +21,7 @@ import { useChangePassword } from "@/hooks/use-account";
 import { applyApiErrorToForm } from "@/lib/api/form-errors";
 
 export const Route = createFileRoute("/account/security")({
-  head: () => ({ meta: [{ title: "Security — KNA account" }] }),
+  head: () => ({ meta: [{ title: "Security — Urithi account" }] }),
   component: Security,
 });
 

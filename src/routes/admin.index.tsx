@@ -1,12 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { orders, assets, formatKES } from "@/lib/mock-data";
 import { OrderStatusBadge } from "@/components/kna/components";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ArrowUpRight, TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/")({
-  head: () => ({ meta: [{ title: "Dashboard — KNA Admin" }] }),
+  head: () => ({ meta: [{ title: "Dashboard — Urithi Admin" }] }),
   component: Dashboard,
 });
 
@@ -49,8 +56,12 @@ function Dashboard() {
                       <p className="text-xs text-muted-foreground">{o.date}</p>
                     </TableCell>
                     <TableCell className="text-sm">Wanjiku Kamau</TableCell>
-                    <TableCell><OrderStatusBadge status={o.status} /></TableCell>
-                    <TableCell className="text-right tabular-nums font-medium">{formatKES(o.total)}</TableCell>
+                    <TableCell>
+                      <OrderStatusBadge status={o.status} />
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums font-medium">
+                      {formatKES(o.total)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -65,15 +76,21 @@ function Dashboard() {
           <ol className="mt-4 space-y-4">
             {assets.slice(0, 5).map((a, i) => (
               <li key={a.id} className="flex items-center gap-3">
-                <span className="font-display text-xl text-muted-foreground w-6 tabular-nums">{String(i + 1).padStart(2, "0")}</span>
+                <span className="font-display text-xl text-muted-foreground w-6 tabular-nums">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
                 <div className="watermark h-12 w-16 shrink-0 overflow-hidden bg-ink">
                   <img src={a.image} alt="" className="bw h-full w-full object-cover" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="line-clamp-1 text-sm font-medium">{a.title}</p>
-                  <p className="text-xs text-muted-foreground">{a.year} · {a.category}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {a.year} · {a.category}
+                  </p>
                 </div>
-                <p className="tabular-nums text-sm font-medium">{formatKES(a.priceFrom * (30 - i * 4))}</p>
+                <p className="tabular-nums text-sm font-medium">
+                  {formatKES(a.priceFrom * (30 - i * 4))}
+                </p>
               </li>
             ))}
           </ol>
@@ -83,12 +100,27 @@ function Dashboard() {
   );
 }
 
-function Stat({ label, value, delta, up }: { label: string; value: string; delta: string; up: boolean }) {
+function Stat({
+  label,
+  value,
+  delta,
+  up,
+}: {
+  label: string;
+  value: string;
+  delta: string;
+  up: boolean;
+}) {
   return (
     <div className="border border-border bg-background p-5">
       <p className="eyebrow">{label}</p>
       <p className="mt-3 font-display text-3xl tabular-nums">{value}</p>
-      <p className={cn("mt-2 inline-flex items-center gap-1 text-xs font-medium", up ? "text-[oklch(0.4_0.14_150)]" : "text-flag-red")}>
+      <p
+        className={cn(
+          "mt-2 inline-flex items-center gap-1 text-xs font-medium",
+          up ? "text-[oklch(0.4_0.14_150)]" : "text-flag-red",
+        )}
+      >
         {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />} {delta}
         <ArrowUpRight className="ml-1 h-3 w-3 text-muted-foreground" />
       </p>

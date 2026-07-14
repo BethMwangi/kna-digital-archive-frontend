@@ -26,7 +26,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/auth/reset")({
-  head: () => ({ meta: [{ title: "Reset password — KNA Digital Archive" }] }),
+  head: () => ({ meta: [{ title: "Reset password — Urithi Digital Archive" }] }),
   validateSearch: (search) => searchSchema.parse(search),
   component: ResetPasswordPage,
 });
@@ -125,7 +125,7 @@ function ResetPasswordPage() {
           />
           <Button
             type="submit"
-            className="w-full rounded-none bg-ink text-paper hover:bg-ink/90"
+            className="w-full rounded-none bg-flag-green text-paper hover:bg-flag-green/90"
             size="lg"
             disabled={resetPassword.isPending}
           >

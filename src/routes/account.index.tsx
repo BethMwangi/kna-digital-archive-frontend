@@ -4,7 +4,7 @@ import { OrderStatusBadge } from "@/components/kna/components";
 import { Download, Receipt, ShoppingBag } from "lucide-react";
 
 export const Route = createFileRoute("/account/")({
-  head: () => ({ meta: [{ title: "Overview — My account · KNA" }] }),
+  head: () => ({ meta: [{ title: "Overview — My account · Urithi" }] }),
   component: Overview,
 });
 
@@ -24,14 +24,18 @@ function Overview() {
       <section className="mt-12">
         <div className="flex items-end justify-between border-b border-border pb-3">
           <h2 className="font-display text-2xl">Recent orders</h2>
-          <Link to="/account/orders" className="text-sm underline underline-offset-4">View all</Link>
+          <Link to="/account/orders" className="text-sm underline underline-offset-4">
+            View all
+          </Link>
         </div>
         <div className="mt-4 divide-y divide-border border border-border">
           {recent.map((o) => (
             <div key={o.id} className="grid grid-cols-[1fr_auto_auto] items-center gap-4 p-4">
               <div>
                 <p className="font-medium">{o.number}</p>
-                <p className="text-xs text-muted-foreground">{o.date} · {o.items.length} record{o.items.length > 1 ? "s" : ""}</p>
+                <p className="text-xs text-muted-foreground">
+                  {o.date} · {o.items.length} record{o.items.length > 1 ? "s" : ""}
+                </p>
               </div>
               <OrderStatusBadge status={o.status} />
               <p className="tabular-nums font-medium">{formatKES(o.total)}</p>
@@ -43,7 +47,15 @@ function Overview() {
   );
 }
 
-function Stat({ label, value, icon: Icon }: { label: string; value: string; icon: React.ComponentType<{ className?: string }> }) {
+function Stat({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  icon: React.ComponentType<{ className?: string }>;
+}) {
   return (
     <div className="border border-border bg-paper-warm p-5">
       <div className="flex items-center justify-between">

@@ -12,7 +12,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/auth/verify")({
-  head: () => ({ meta: [{ title: "Verify email — KNA Digital Archive" }] }),
+  head: () => ({ meta: [{ title: "Verify email — Urithi Digital Archive" }] }),
   validateSearch: (search) => searchSchema.parse(search),
   component: VerifyEmailPage,
 });
@@ -67,7 +67,11 @@ function VerifyEmailPage() {
         <p className="mt-2 text-sm text-muted-foreground">
           Your address is confirmed. You can now sign in.
         </p>
-        <Button asChild className="mt-8 rounded-none bg-ink text-paper hover:bg-ink/90" size="lg">
+        <Button
+          asChild
+          className="mt-8 rounded-none bg-flag-green text-paper hover:bg-flag-green/90"
+          size="lg"
+        >
           <Link to="/auth/login">Continue to sign in</Link>
         </Button>
       </div>
