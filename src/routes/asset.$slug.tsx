@@ -251,6 +251,7 @@ function RealAssetDetail({ id }: { id: string }) {
   const { data: assetsPage } = useAssets({ page: 1 });
   const { data: licenses } = useLicenses();
   const [licenseId, setLicenseId] = useState<string>();
+  const [side, setSide] = useState<"front" | "back">("front");
   const addToCart = useAddToCart();
   const navigate = useNavigate();
 
@@ -292,6 +293,8 @@ function RealAssetDetail({ id }: { id: string }) {
   const locationLabel =
     [asset.metadata?.location, asset.metadata?.county].filter(Boolean).join(" · ") || "—";
   const periodLabel = asset.metadata?.historical_period || "—";
+  const isTwoSided = asset.has_back && Boolean(asset.image_back);
+  const mainImage = side === "back" && asset.image_back ? asset.image_back : asset.image;
 
   const handleAddToCart = () => {
     if (!selectedLicenseId) {
@@ -338,8 +341,49 @@ function RealAssetDetail({ id }: { id: string }) {
         {/* Preview */}
         <div>
           <div className="relative">
-            <PreviewImage src={asset.image} alt={asset.title} aspect="aspect-[4/3]" zoomable />
+            <PreviewImage
+              key={mainImage}
+              src={mainImage}
+              alt={`${asset.title}${side === "back" ? " — back" : ""}`}
+              aspect="aspect-[4/3]"
+              zoomable
+            />
           </div>
+
+          {isTwoSided && (
+            <div className="mt-3">
+              <p className="eyebrow mb-2">Front &amp; back</p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSide("front")}
+                  className={`aspect-[4/3] w-24 overflow-hidden bg-ink ring-offset-2 transition ${
+                    side === "front" ? "ring-2 ring-ink" : "opacity-70 hover:opacity-100"
+                  }`}
+                >
+                  <img
+                    src={asset.image}
+                    alt={`${asset.title} — front`}
+                    className="bw h-full w-full object-cover"
+                  />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSide("back")}
+                  className={`aspect-[4/3] w-24 overflow-hidden bg-ink ring-offset-2 transition ${
+                    side === "back" ? "ring-2 ring-ink" : "opacity-70 hover:opacity-100"
+                  }`}
+                >
+                  <img
+                    src={asset.image_back!}
+                    alt={`${asset.title} — back`}
+                    className="bw h-full w-full object-cover"
+                  />
+                </button>
+              </div>
+            </div>
+          )}
+
           <p className="mt-3 text-xs text-muted-foreground">
             All previews are watermarked. Purchased files are delivered without the Urithi
             watermark.

@@ -61,20 +61,28 @@ export interface Paginated<T> {
   results: T[];
 }
 
-/** Mirrors apps/assets/serializers.py CategorySerializer. */
+/**
+ * Mirrors apps/assets/serializers.py CategorySerializer. `count`/`cover` are
+ * present when a category is nested inside an asset response — not yet
+ * confirmed on the standalone GET /categories/ list, so treat as optional.
+ */
 export interface CategoryOut {
   id: string;
   name: string;
   slug: string;
   description: string;
+  count?: number;
+  cover?: string;
 }
 
-/** Mirrors apps/assets/serializers.py CollectionSerializer. */
+/** Mirrors apps/assets/serializers.py CollectionSerializer. Same `count`/`cover` caveat as CategoryOut. */
 export interface CollectionOut {
   id: string;
   name: string;
   slug: string;
   description: string;
+  count?: number;
+  cover?: string;
 }
 
 /** Mirrors apps/assets/serializers.py TagSerializer. */
@@ -121,6 +129,8 @@ export interface AssetListItem {
   /** Flat per-asset price — no resolution tiers. */
   price: number;
   currency: string;
+  /** True for two-sided prints — the detail endpoint's `image_back` is only meaningful then. */
+  has_back: boolean;
 }
 
 /** DigitalAssetDetailSerializer — full detail/buy page shape. */
@@ -133,8 +143,10 @@ export interface AssetDetail extends AssetListItem {
   capture_date: string | null;
   metadata: AssetMetadataOut | null;
   variants: AssetVariantPublicOut[];
-  /** Watermarked preview, large — detail page hero. */
+  /** Watermarked preview, large — detail page hero (front side). */
   image: string;
+  /** Watermarked preview of the reverse side — present only when has_back is true. */
+  image_back: string | null;
   updated_at: string;
 }
 

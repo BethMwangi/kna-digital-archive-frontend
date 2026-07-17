@@ -58,6 +58,7 @@ function fixDetail(item: AssetDetail): AssetDetail {
     ...item,
     thumbnail: fixMediaUrl(item.thumbnail),
     image: fixMediaUrl(item.image),
+    image_back: item.image_back ? fixMediaUrl(item.image_back) : item.image_back,
     price: toNumber(item.price),
   };
 }
