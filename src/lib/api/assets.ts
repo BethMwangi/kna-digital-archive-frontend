@@ -1,4 +1,4 @@
-import { apiClient } from "./client";
+import { apiClient, toNumber } from "./client";
 import { API_BASE_URL } from "./config";
 import type {
   AssetDetail,
@@ -30,28 +30,36 @@ function qs(params: object): string {
 }
 
 /**
- * The dev API serves `thumbnail`/`image` from BACKEND_URL, which currently
- * defaults to :8080 while the API itself runs on :8000 — every media URL
- * 404s until that's fixed server-side. Rewrite the origin to match
- * API_BASE_URL's so images load today and this becomes a no-op once the
- * backend's BACKEND_URL is corrected.
+ * Local-dev-only fixup: the dev API used to serve `thumbnail`/`image` from
+ * BACKEND_URL, which defaulted to :8080 while the API itself ran on :8000 —
+ * same host, wrong port. Only rewrite that exact same-hostname mismatch.
+ *
+ * In production, media lives on a legitimately different host (Supabase
+ * Storage, S3, a CDN) — those absolute URLs must be left untouched, or
+ * real images get rewritten into broken ones on the API's own domain.
  */
 function fixMediaUrl(url: string): string {
   try {
     const media = new URL(url);
-    const apiOrigin = new URL(API_BASE_URL).origin;
-    return media.origin === apiOrigin ? url : `${apiOrigin}${media.pathname}${media.search}`;
+    const api = new URL(API_BASE_URL);
+    if (media.hostname !== api.hostname || media.origin === api.origin) return url;
+    return `${api.origin}${media.pathname}${media.search}`;
   } catch {
     return url;
   }
 }
 
 function fixListItem(item: AssetListItem): AssetListItem {
-  return { ...item, thumbnail: fixMediaUrl(item.thumbnail) };
+  return { ...item, thumbnail: fixMediaUrl(item.thumbnail), price: toNumber(item.price) };
 }
 
 function fixDetail(item: AssetDetail): AssetDetail {
-  return { ...item, thumbnail: fixMediaUrl(item.thumbnail), image: fixMediaUrl(item.image) };
+  return {
+    ...item,
+    thumbnail: fixMediaUrl(item.thumbnail),
+    image: fixMediaUrl(item.image),
+    price: toNumber(item.price),
+  };
 }
 
 /** GET /assets/ — enveloped; `data` is a DRF-paginated payload. */
@@ -80,24 +88,33 @@ export async function listLatestAssets(): Promise<AssetListItem[]> {
   return data.map(fixListItem);
 }
 
-/** GET /categories/ — enveloped + paginated; normalized to a bare array. */
-export async function listCategories(): Promise<CategoryOut[]> {
-  const data = await apiClient.get<Paginated<CategoryOut> | CategoryOut[]>("/categories/", {
-    skipAuth: true,
-  });
-  return Array.isArray(data) ? data : data.results;
+/**
+ * Taxonomy endpoints (categories/collections/tags) are enveloped + paginated
+ * (e.g. 21 categories across 2 pages) — follow `next` so callers always get
+ * the full set instead of silently truncating at the first page.
+ */
+async function listAllPaginated<T>(path: string): Promise<T[]> {
+  const results: T[] = [];
+  let next: string | null = path;
+  while (next) {
+    const data: Paginated<T> = await apiClient.get<Paginated<T>>(next, { skipAuth: true });
+    results.push(...data.results);
+    next = data.next ? `${path}${new URL(data.next).search}` : null;
+  }
+  return results;
 }
 
-/** GET /collections/ — enveloped + paginated; normalized to a bare array. None seeded yet. */
-export async function listCollections(): Promise<CollectionOut[]> {
-  const data = await apiClient.get<Paginated<CollectionOut> | CollectionOut[]>("/collections/", {
-    skipAuth: true,
-  });
-  return Array.isArray(data) ? data : data.results;
+/** GET /categories/ */
+export function listCategories(): Promise<CategoryOut[]> {
+  return listAllPaginated<CategoryOut>("/categories/");
 }
 
-/** GET /tags/ — enveloped + paginated; normalized to a bare array. */
-export async function listTags(): Promise<TagOut[]> {
-  const data = await apiClient.get<Paginated<TagOut> | TagOut[]>("/tags/", { skipAuth: true });
-  return Array.isArray(data) ? data : data.results;
+/** GET /collections/ */
+export function listCollections(): Promise<CollectionOut[]> {
+  return listAllPaginated<CollectionOut>("/collections/");
+}
+
+/** GET /tags/ */
+export function listTags(): Promise<TagOut[]> {
+  return listAllPaginated<TagOut>("/tags/");
 }

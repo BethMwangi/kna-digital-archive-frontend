@@ -101,6 +101,12 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   }
 }
 
+/** DRF renders DecimalField as a JSON string (e.g. "1500.00") — coerce at the boundary
+ *  so callers can rely on the TS type (`number`) matching the runtime value. */
+export function toNumber(value: number | string): number {
+  return typeof value === "string" ? parseFloat(value) : value;
+}
+
 export const apiClient = {
   get: <T>(path: string, options?: RequestOptions) =>
     request<T>(path, { ...options, method: "GET" }),

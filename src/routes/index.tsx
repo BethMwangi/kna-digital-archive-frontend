@@ -7,10 +7,10 @@ import {
   SearchBar,
   SectionHeader,
   type AssetCardData,
+  type CollectionCardData,
 } from "@/components/kna/components";
-import { categories, collections } from "@/lib/mock-data";
-import { useAssets, useFeaturedAssets } from "@/hooks/use-assets";
-import type { AssetListItem } from "@/lib/api/types";
+import { useAssets, useCategories, useCollections, useFeaturedAssets } from "@/hooks/use-assets";
+import type { AssetListItem, CollectionOut } from "@/lib/api/types";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, ArrowUpRight, Search, ShoppingBag, Download } from "lucide-react";
@@ -26,6 +26,13 @@ function toCard(a: AssetListItem): AssetCardData {
     year: a.publication_date?.slice(0, 4) ?? a.created_at.slice(0, 4),
     category: a.category?.name ?? "Uncategorised",
   };
+}
+
+// Collections have no cover image of their own yet — use a real asset from
+// that collection as the cover (see src/lib/api/assets.ts).
+function toCollectionCard(c: CollectionOut, assets: AssetListItem[]): CollectionCardData {
+  const cover = assets.find((a) => a.collection?.id === c.id)?.thumbnail ?? assets[0]?.thumbnail;
+  return { id: c.id, title: c.name, cover: cover ?? heroImage };
 }
 
 export const Route = createFileRoute("/")({
@@ -44,15 +51,14 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   const { data: featuredAssets, isPending, isError } = useFeaturedAssets();
-  // Real Collections aren't seeded on the backend yet (see src/lib/api/assets.ts
-  // notes), so we keep the curated titles/blurbs but swap each placeholder
-  // Unsplash cover for a real archive photo once one is available.
+  const { data: realCategories, isPending: categoriesPending } = useCategories();
+  const {
+    data: realCollections,
+    isPending: collectionsPending,
+    isError: collectionsError,
+  } = useCollections();
   const { data: assetsPage } = useAssets({ page: 1 });
-  const realPhotos = assetsPage?.results ?? [];
-  const collectionsWithRealCovers = collections.map((c, i) => ({
-    ...c,
-    cover: realPhotos.length ? realPhotos[i % realPhotos.length].thumbnail : c.cover,
-  }));
+  const assetsForCover = assetsPage?.results ?? [];
   return (
     <SiteShell>
       {/* HERO */}
@@ -108,11 +114,21 @@ function HomePage() {
             </Link>
           }
         />
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
-          {collectionsWithRealCovers.map((c) => (
-            <CollectionCard key={c.id} collection={c} />
-          ))}
-        </div>
+        {collectionsError ? (
+          <p className="text-sm text-muted-foreground">Couldn't load collections.</p>
+        ) : collectionsPending ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-[4/5] w-full" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
+            {(realCollections ?? []).map((c) => (
+              <CollectionCard key={c.id} collection={toCollectionCard(c, assetsForCover)} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Latest additions */}
@@ -152,11 +168,19 @@ function HomePage() {
       {/* Categories */}
       <section className="mx-auto max-w-7xl px-4 py-20 md:px-8">
         <SectionHeader eyebrow="Browse by subject" title="Categories" />
-        <div className="flex flex-wrap gap-2">
-          {categories.map((c) => (
-            <CategoryPill key={c.id} name={c.name} count={c.count} />
-          ))}
-        </div>
+        {categoriesPending ? (
+          <div className="flex flex-wrap gap-2">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="h-8 w-24 rounded-full" />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {(realCategories ?? []).map((c) => (
+              <CategoryPill key={c.id} name={c.name} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* How it works */}

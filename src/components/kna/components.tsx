@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import type { Collection, LicenseType, OrderStatus } from "@/lib/mock-data";
+import type { LicenseType, OrderStatus } from "@/lib/mock-data";
 import { formatKES } from "@/lib/mock-data";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -116,7 +116,17 @@ export function CategoryPill({
 }
 
 /* ---------- CollectionCard ---------- */
-export function CollectionCard({ collection }: { collection: Collection }) {
+/** Loosened beyond the mock `Collection` shape so real API collections
+ *  (no count/blurb yet — see src/lib/api/assets.ts) can render here too. */
+export interface CollectionCardData {
+  id: string;
+  title: string;
+  cover: string;
+  count?: number;
+  blurb?: string;
+}
+
+export function CollectionCard({ collection }: { collection: CollectionCardData }) {
   return (
     <Link to="/browse" className="group relative block overflow-hidden aspect-[4/5]">
       <img
@@ -128,10 +138,13 @@ export function CollectionCard({ collection }: { collection: Collection }) {
       <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/40 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 p-5 text-paper">
         <p className="eyebrow !text-paper/70">
-          Collection · {collection.count.toLocaleString()} assets
+          Collection
+          {typeof collection.count === "number" && ` · ${collection.count.toLocaleString()} assets`}
         </p>
         <h3 className="mt-2 font-display text-2xl leading-tight">{collection.title}</h3>
-        <p className="mt-1 text-sm text-paper/80 line-clamp-2">{collection.blurb}</p>
+        {collection.blurb && (
+          <p className="mt-1 text-sm text-paper/80 line-clamp-2">{collection.blurb}</p>
+        )}
       </div>
     </Link>
   );

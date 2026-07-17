@@ -1,4 +1,4 @@
-import { apiClient } from "./client";
+import { apiClient, toNumber } from "./client";
 import type { CartItemOut } from "./types";
 
 export interface AddToCartInput {
@@ -6,9 +6,19 @@ export interface AddToCartInput {
   license_id: string;
 }
 
+// DRF renders DecimalField as a JSON string ("1500.00") — coerce at the boundary (see assets.ts).
+function fixCartItem(item: CartItemOut): CartItemOut {
+  return {
+    ...item,
+    asset: { ...item.asset, price: toNumber(item.asset.price) },
+    subtotal: toNumber(item.subtotal),
+  };
+}
+
 /** POST /cart/ — adds one licensed copy of an asset to the cart. Requires auth. */
-export function addToCart(input: AddToCartInput): Promise<CartItemOut> {
-  return apiClient.post<CartItemOut>("/cart/", input);
+export async function addToCart(input: AddToCartInput): Promise<CartItemOut> {
+  const data = await apiClient.post<CartItemOut>("/cart/", input);
+  return fixCartItem(data);
 }
 
 /**
@@ -16,8 +26,9 @@ export function addToCart(input: AddToCartInput): Promise<CartItemOut> {
  * assumed to be a bare array of cart items, matching the list convention
  * used elsewhere in this API (see assets.ts, admin-users.ts).
  */
-export function listCart(): Promise<CartItemOut[]> {
-  return apiClient.get<CartItemOut[]>("/cart/");
+export async function listCart(): Promise<CartItemOut[]> {
+  const data = await apiClient.get<CartItemOut[]>("/cart/");
+  return data.map(fixCartItem);
 }
 
 /** DELETE /cart/{id}/ — TODO(api): confirm this path once the endpoint ships. */
