@@ -79,7 +79,7 @@ function Dashboard() {
                 <span className="font-display text-xl text-muted-foreground w-6 tabular-nums">
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                <div className="watermark h-12 w-16 shrink-0 overflow-hidden bg-ink">
+                <div className="h-12 w-16 shrink-0 overflow-hidden bg-ink">
                   <img src={a.image} alt="" className="bw h-full w-full object-cover" />
                 </div>
                 <div className="min-w-0 flex-1">

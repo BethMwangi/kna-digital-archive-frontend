@@ -46,7 +46,7 @@ function Downloads() {
                 <TableRow key={i}>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div className="watermark-sm h-12 w-16 shrink-0 overflow-hidden bg-ink">
+                      <div className="h-12 w-16 shrink-0 overflow-hidden bg-ink">
                         <img src={asset.image} alt="" className="bw h-full w-full object-cover" />
                       </div>
                       <div className="min-w-0">

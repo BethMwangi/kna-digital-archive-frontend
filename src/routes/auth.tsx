@@ -32,7 +32,6 @@ function AuthLayout() {
           alt={photo.title}
           className="bw absolute inset-0 h-full w-full object-cover"
         />
-        <div className="watermark absolute inset-0" />
         <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/30 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 p-10 text-paper">
           <p className="eyebrow !text-paper/70">From the archive</p>

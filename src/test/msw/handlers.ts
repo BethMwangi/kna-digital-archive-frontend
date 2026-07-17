@@ -132,4 +132,47 @@ export const handlers = [
   http.get(`${API}/admin/users/`, () =>
     HttpResponse.json({ count: 1, next: null, previous: null, results: [testUser] }),
   ),
+
+  // 243 fake records across 20/page, so pagination tests can exercise a real "next" page.
+  http.get(`${API}/assets/`, ({ request }) => {
+    const url = new URL(request.url);
+    const page = Number(url.searchParams.get("page") ?? "1");
+    const pageSize = 20;
+    const total = 243;
+    const start = (page - 1) * pageSize;
+    const results = Array.from(
+      { length: Math.max(0, Math.min(pageSize, total - start)) },
+      (_, i) => {
+        const n = start + i + 1;
+        return {
+          id: `asset-${n}`,
+          asset_number: `KNA-${n}`,
+          title: `Archive record ${n}`,
+          asset_type: "photograph",
+          status: "published",
+          visibility: "public",
+          category: null,
+          collection: null,
+          tags: [],
+          photographer: "Staff Photographer",
+          publication_date: null,
+          created_at: "2026-01-01T00:00:00Z",
+          thumbnail: `https://example.com/${n}.jpg`,
+          price: "1500.00",
+          currency: "KES",
+        };
+      },
+    );
+    return HttpResponse.json(
+      envelope(
+        {
+          count: total,
+          next: start + pageSize < total ? `${API}/assets/?page=${page + 1}` : null,
+          previous: page > 1 ? `${API}/assets/?page=${page - 1}` : null,
+          results,
+        },
+        "Assets retrieved.",
+      ),
+    );
+  }),
 ];

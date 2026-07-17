@@ -117,7 +117,7 @@ function AdminAssets() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div className="watermark-sm h-10 w-14 shrink-0 overflow-hidden bg-ink">
+                      <div className="h-10 w-14 shrink-0 overflow-hidden bg-ink">
                         <img src={a.image} alt="" className="bw h-full w-full object-cover" />
                       </div>
                       <div className="min-w-0">

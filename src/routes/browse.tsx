@@ -1,10 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { SiteShell } from "@/components/kna/site-shell";
 import { AssetCard, EmptyState, SearchBar, type AssetCardData } from "@/components/kna/components";
 import { categories, collections } from "@/lib/mock-data";
 import { useAssets } from "@/hooks/use-assets";
 import type { AssetListItem } from "@/lib/api/types";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -24,7 +23,8 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useState } from "react";
+import { Loader2 } from "lucide-react";
+import { useRef, useState } from "react";
 
 export const Route = createFileRoute("/browse")({
   head: () => ({
@@ -57,12 +57,23 @@ function toCard(a: AssetListItem): AssetCardData {
   };
 }
 
-function BrowsePage() {
+export function BrowsePage() {
   const [page, setPage] = useState(1);
-  const { data, isPending, isError } = useAssets({ page });
+  const { data, isPending, isError, isFetching } = useAssets({ page });
   const results = data?.results ?? [];
   const total = data?.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const resultsRef = useRef<HTMLElement>(null);
+
+  // useAssets keeps the previous page's data visible while the next page
+  // loads (keepPreviousData) — isPending stays false, so without this the
+  // grid would silently sit on stale content with zero feedback for
+  // however long the request takes (a slow/cold backend can make that look
+  // completely broken). isFetching stays true for that whole window.
+  function goToPage(next: number) {
+    setPage(next);
+    resultsRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  }
 
   return (
     <SiteShell>
@@ -151,11 +162,14 @@ function BrowsePage() {
         </aside>
 
         {/* Results */}
-        <section>
+        <section ref={resultsRef}>
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <span className="font-medium text-foreground">{total.toLocaleString()}</span> records
               in the archive
+              {isFetching && !isPending && (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+              )}
             </p>
             <div className="flex items-center gap-2">
               <Label className="text-xs text-muted-foreground">Sort</Label>
@@ -196,7 +210,13 @@ function BrowsePage() {
             />
           ) : (
             <>
-              <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+              <div
+                className={
+                  isFetching
+                    ? "grid gap-8 opacity-50 transition-opacity sm:grid-cols-2 lg:grid-cols-3"
+                    : "grid gap-8 transition-opacity sm:grid-cols-2 lg:grid-cols-3"
+                }
+              >
                 {results.map((a) => (
                   <AssetCard key={a.id} asset={toCard(a)} />
                 ))}
@@ -211,11 +231,13 @@ function BrowsePage() {
                     <PaginationItem>
                       <PaginationPrevious
                         href="#"
-                        aria-disabled={page <= 1}
-                        className={page <= 1 ? "pointer-events-none opacity-50" : undefined}
+                        aria-disabled={page <= 1 || isFetching}
+                        className={
+                          page <= 1 || isFetching ? "pointer-events-none opacity-50" : undefined
+                        }
                         onClick={(e) => {
                           e.preventDefault();
-                          if (page > 1) setPage(page - 1);
+                          if (page > 1) goToPage(page - 1);
                         }}
                       />
                     </PaginationItem>
@@ -227,13 +249,15 @@ function BrowsePage() {
                     <PaginationItem>
                       <PaginationNext
                         href="#"
-                        aria-disabled={page >= totalPages}
+                        aria-disabled={page >= totalPages || isFetching}
                         className={
-                          page >= totalPages ? "pointer-events-none opacity-50" : undefined
+                          page >= totalPages || isFetching
+                            ? "pointer-events-none opacity-50"
+                            : undefined
                         }
                         onClick={(e) => {
                           e.preventDefault();
-                          if (page < totalPages) setPage(page + 1);
+                          if (page < totalPages) goToPage(page + 1);
                         }}
                       />
                     </PaginationItem>

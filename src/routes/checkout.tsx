@@ -53,7 +53,7 @@ function CheckoutPage() {
                       key={item.id}
                       className="flex items-center gap-4 border-b border-border p-4 last:border-b-0"
                     >
-                      <div className="watermark-sm h-16 w-20 shrink-0 overflow-hidden bg-ink">
+                      <div className="h-16 w-20 shrink-0 overflow-hidden bg-ink">
                         <img
                           src={item.asset.thumbnail}
                           alt=""

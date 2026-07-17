@@ -1,32 +1,66 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import type { LicenseType, OrderStatus } from "@/lib/mock-data";
 import { formatKES } from "@/lib/mock-data";
-import { Search, X } from "lucide-react";
+import { Search, X, ZoomIn } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
-/* ---------- Watermarked image ---------- */
-export function WatermarkImage({
+/* ---------- Archival preview image ---------- */
+/** Real images (and slow connections) can take a couple of seconds — show a
+ *  skeleton until the image actually loads instead of a blank/broken flash. */
+export function PreviewImage({
   src,
   alt,
   className,
   aspect = "aspect-[4/3]",
+  zoomable = false,
 }: {
   src: string;
   alt: string;
   className?: string;
   aspect?: string;
+  /** Adds a zoom button that opens the image full-size in a lightbox. */
+  zoomable?: boolean;
 }) {
+  const [loaded, setLoaded] = useState(false);
+  const [open, setOpen] = useState(false);
+
   return (
-    <div className={cn("watermark overflow-hidden bg-ink", aspect, className)}>
+    <div className={cn("relative overflow-hidden bg-ink", aspect, className)}>
+      {!loaded && <Skeleton className="absolute inset-0" />}
       <img
         src={src}
         alt={alt}
         loading="lazy"
-        className="bw h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.04]"
+        onLoad={() => setLoaded(true)}
+        className={cn(
+          "bw h-full w-full object-cover transition-[opacity,transform] duration-[900ms] ease-out group-hover:scale-[1.04]",
+          loaded ? "opacity-100" : "opacity-0",
+        )}
       />
+      {zoomable && (
+        <>
+          <button
+            type="button"
+            aria-label="Zoom preview"
+            onClick={() => setOpen(true)}
+            className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center bg-ink/80 text-paper hover:bg-ink"
+          >
+            <ZoomIn className="h-4 w-4" />
+          </button>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogContent className="max-w-5xl border-none bg-transparent p-0 shadow-none">
+              <DialogTitle className="sr-only">{alt}</DialogTitle>
+              <img src={src} alt={alt} className="max-h-[85vh] w-full object-contain" />
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
     </div>
   );
 }
@@ -35,7 +69,7 @@ export function WatermarkImage({
 /**
  * Loosened beyond the mock `Asset` shape so real API assets (no slug/price
  * yet — see src/lib/api/assets.ts) can render here too; only `priceFrom` is
- * optional so the price block can be omitted for them.
+ * optionalp so the price block can be omitted for them.
  */
 export interface AssetCardData {
   id: string;
@@ -54,7 +88,7 @@ export function AssetCard({ asset }: { asset: AssetCardData }) {
       params={{ slug: asset.slug }}
       className="group block focus:outline-none"
     >
-      <WatermarkImage src={asset.image} alt={asset.title} />
+      <PreviewImage src={asset.image} alt={asset.title} />
       <div className="mt-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">

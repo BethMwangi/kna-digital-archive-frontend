@@ -5,8 +5,8 @@ import {
   AssetCard,
   EmptyState,
   LicenseBadge,
+  PreviewImage,
   SectionHeader,
-  WatermarkImage,
   type AssetCardData,
 } from "@/components/kna/components";
 import { assets, findAsset, formatKES, licenseInfo } from "@/lib/mock-data";
@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
-import { Camera, MapPin, Calendar, Tag, ZoomIn } from "lucide-react";
+import { Camera, MapPin, Calendar, Tag } from "lucide-react";
 
 // Backend has no slug field yet — route by id (see src/lib/api/assets.ts).
 function toCard(a: AssetListItem): AssetCardData {
@@ -109,13 +109,7 @@ function MockAssetDetail({ asset }: { asset: Asset }) {
         {/* Preview */}
         <div>
           <div className="relative">
-            <WatermarkImage src={asset.image} alt={asset.title} aspect="aspect-[4/3]" />
-            <button
-              aria-label="Zoom preview"
-              className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center bg-ink/80 text-paper hover:bg-ink"
-            >
-              <ZoomIn className="h-4 w-4" />
-            </button>
+            <PreviewImage src={asset.image} alt={asset.title} aspect="aspect-[4/3]" zoomable />
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
             All previews are watermarked. Purchased files are delivered without the Urithi
@@ -344,13 +338,7 @@ function RealAssetDetail({ id }: { id: string }) {
         {/* Preview */}
         <div>
           <div className="relative">
-            <WatermarkImage src={asset.image} alt={asset.title} aspect="aspect-[4/3]" />
-            <button
-              aria-label="Zoom preview"
-              className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center bg-ink/80 text-paper hover:bg-ink"
-            >
-              <ZoomIn className="h-4 w-4" />
-            </button>
+            <PreviewImage src={asset.image} alt={asset.title} aspect="aspect-[4/3]" zoomable />
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
             All previews are watermarked. Purchased files are delivered without the Urithi

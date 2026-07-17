@@ -68,7 +68,7 @@ function CartPage() {
                   <Link
                     to="/asset/$slug"
                     params={{ slug: item.asset.id }}
-                    className="watermark-sm block overflow-hidden bg-ink aspect-square"
+                    className="block overflow-hidden bg-ink aspect-square"
                   >
                     <img
                       src={item.asset.thumbnail}
