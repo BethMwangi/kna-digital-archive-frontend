@@ -219,12 +219,10 @@ function MockAssetDetail({ asset }: { asset: Asset }) {
             <Button
               className="mt-6 w-full rounded-none bg-flag-green text-paper hover:bg-flag-green/90"
               size="lg"
-              asChild
+              onClick={() => toast.success("Added to cart.")}
             >
-              <Link to="/cart">
-                Add to cart ·{" "}
-                {formatKES(asset.tiers.find((t) => t.label === tier)?.price ?? asset.priceFrom)}
-              </Link>
+              Add to cart ·{" "}
+              {formatKES(asset.tiers.find((t) => t.label === tier)?.price ?? asset.priceFrom)}
             </Button>
             <p className="mt-3 text-center text-xs text-muted-foreground">
               Instant download · Invoice + license certificate included
@@ -319,7 +317,6 @@ function RealAssetDetail({ id }: { id: string }) {
       {
         onSuccess: () => {
           toast.success("Added to cart.");
-          navigate({ to: "/cart" });
         },
         onError: () => toast.error("Couldn't add this record to your cart. Try again."),
       },

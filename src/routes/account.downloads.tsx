@@ -4,6 +4,7 @@ import { LicenseBadge } from "@/components/kna/components";
 import { assets } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -61,7 +62,11 @@ function Downloads() {
                   <TableCell className="tabular-nums text-sm">{5 - i} of 5</TableCell>
                   <TableCell className="text-sm text-muted-foreground">2026-12-31</TableCell>
                   <TableCell className="text-right">
-                    <Button size="sm" className="rounded-none bg-ink text-paper hover:bg-ink/90">
+                    <Button
+                      size="sm"
+                      className="rounded-none bg-ink text-paper hover:bg-ink/90"
+                      onClick={() => toast.success("Download link sent to your email.")}
+                    >
                       <Download className="mr-1.5 h-3 w-3" /> Download
                     </Button>
                   </TableCell>

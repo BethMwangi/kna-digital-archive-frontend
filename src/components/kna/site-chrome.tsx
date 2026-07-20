@@ -3,9 +3,13 @@ import { Search, User, ShoppingCart, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UrithiLogo } from "@/components/kna/logo";
 import { useAuth } from "@/lib/auth/use-auth";
+import { useCartStore } from "@/hooks/use-cart";
+import { formatKES } from "@/lib/mock-data";
 
 export function SiteHeader() {
   const { isAuthenticated, user } = useAuth();
+  const cartItems = useCartStore(s => s.items);
+  const cartTotal = cartItems.reduce((sum, item) => sum + item.subtotal, 0);
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       <div aria-hidden className="flex h-1 w-full">
@@ -44,14 +48,56 @@ export function SiteHeader() {
               <Search className="h-4 w-4" />
             </Link>
           </Button>
-          <Button variant="ghost" size="icon" asChild aria-label="Cart">
-            <Link to="/cart">
-              <ShoppingCart className="h-4 w-4" />
-            </Link>
-          </Button>
+          {/* Cart Dropdown */}
+          <div className="relative group flex items-center h-full">
+            <Button variant="ghost" size="icon" asChild aria-label="Cart" className="relative">
+              <Link to="/cart">
+                <ShoppingCart className="h-4 w-4" />
+                {cartItems.length > 0 && (
+                  <span className="absolute right-1 top-1 h-3.5 w-3.5 rounded-full bg-flag-red text-[8px] font-bold text-white flex items-center justify-center">
+                    {cartItems.length}
+                  </span>
+                )}
+              </Link>
+            </Button>
+            
+            {/* Hover Modal */}
+            <div className="absolute right-0 top-full mt-1 hidden w-72 flex-col rounded-sm border border-border bg-background p-4 shadow-xl group-hover:flex">
+              <p className="font-display text-lg">Your Cart</p>
+              {cartItems.length === 0 ? (
+                <p className="mt-2 text-sm text-muted-foreground">Your cart is empty.</p>
+              ) : (
+                <>
+                  <div className="mt-3 max-h-60 overflow-y-auto pr-1 space-y-3">
+                    {cartItems.map((item, idx) => (
+                      <div key={idx} className="flex gap-3 items-center">
+                        <div className="h-10 w-12 shrink-0 bg-ink overflow-hidden">
+                          <img src={item.asset.thumbnail} alt="" className="h-full w-full object-cover bw" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium line-clamp-1">{item.asset.title}</p>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{item.license.name}</p>
+                        </div>
+                        <p className="text-xs font-bold tabular-nums">{formatKES(item.subtotal)}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 border-t border-border pt-3">
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="text-sm text-muted-foreground">Total</span>
+                      <span className="font-display text-xl tabular-nums">{formatKES(cartTotal)}</span>
+                    </div>
+                    <Button asChild className="w-full rounded-none bg-flag-green text-paper hover:bg-flag-green/90">
+                      <Link to="/checkout">Checkout</Link>
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
           
           {isAuthenticated ? (
-            <Link to="/account" className="hidden sm:block ml-2">
+            <Link to="/account/profile" className="hidden sm:block ml-2">
               <div className="h-8 w-8 overflow-hidden rounded-full border border-border bg-ink">
                 {user?.profile_picture ? (
                   <img src={user.profile_picture} alt={user.first_name} className="h-full w-full object-cover" />
