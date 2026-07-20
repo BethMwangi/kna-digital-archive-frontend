@@ -3,7 +3,6 @@ import { SiteShell } from "@/components/kna/site-shell";
 import { EmptyState } from "@/components/kna/components";
 import { formatKES } from "@/lib/mock-data";
 import { useCart, useRemoveFromCart } from "@/hooks/use-cart";
-import { RequireAuth } from "@/lib/auth/protected-route";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,11 +10,7 @@ import { Trash2, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({ meta: [{ title: "Your cart — Urithi Digital Archive" }] }),
-  component: () => (
-    <RequireAuth>
-      <CartPage />
-    </RequireAuth>
-  ),
+  component: CartPage,
 });
 
 function CartPage() {
