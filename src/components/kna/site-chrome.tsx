@@ -2,8 +2,10 @@ import { Link } from "@tanstack/react-router";
 import { Search, User, ShoppingCart, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UrithiLogo } from "@/components/kna/logo";
+import { useAuth } from "@/lib/auth/use-auth";
 
 export function SiteHeader() {
+  const { isAuthenticated, user } = useAuth();
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       <div aria-hidden className="flex h-1 w-full">
@@ -47,20 +49,36 @@ export function SiteHeader() {
               <ShoppingCart className="h-4 w-4" />
             </Link>
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            asChild
-            aria-label="Account"
-            className="hidden sm:inline-flex"
-          >
-            <Link to="/account">
-              <User className="h-4 w-4" />
+          
+          {isAuthenticated ? (
+            <Link to="/account" className="hidden sm:block ml-2">
+              <div className="h-8 w-8 overflow-hidden rounded-full border border-border bg-ink">
+                {user?.profile_picture ? (
+                  <img src={user.profile_picture} alt={user.first_name} className="h-full w-full object-cover" />
+                ) : (
+                  <User className="h-full w-full p-1.5 text-paper" />
+                )}
+              </div>
             </Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild className="hidden md:inline-flex">
-            <Link to="/auth/login">Sign in</Link>
-          </Button>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                asChild
+                aria-label="Account"
+                className="hidden sm:inline-flex"
+              >
+                <Link to="/account">
+                  <User className="h-4 w-4" />
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild className="hidden md:inline-flex ml-1">
+                <Link to="/auth/login">Sign in</Link>
+              </Button>
+            </>
+          )}
+
           <Button variant="ghost" size="icon" className="md:hidden" aria-label="Menu">
             <Menu className="h-4 w-4" />
           </Button>

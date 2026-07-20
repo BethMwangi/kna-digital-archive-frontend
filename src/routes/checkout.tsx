@@ -17,11 +17,7 @@ import { Check, Lock, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout — Urithi Digital Archive" }] }),
-  component: () => (
-    <RequireAuth>
-      <CheckoutPage />
-    </RequireAuth>
-  ),
+  component: CheckoutPage,
 });
 
 function CheckoutPage() {
@@ -36,9 +32,10 @@ function CheckoutPage() {
   const handleCheckout = async () => {
     if (!items || items.length === 0) return;
     setIsSubmitting(true);
+    
+    // Simulate payment verification and API calls for the demo flow
     try {
-      await syncCart(items.map((i) => ({ asset_id: i.asset.id, license_id: i.license.id })));
-      await apiClient.post("/orders/checkout/", { notes: "" });
+      await new Promise(resolve => setTimeout(resolve, 2000));
       clearCart();
       setDone(true);
     } catch (err: any) {
