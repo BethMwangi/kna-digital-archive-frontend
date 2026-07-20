@@ -49,13 +49,13 @@ The app will be available at [http://localhost:8080](http://localhost:8080).
 ## Other scripts
 
 | Command             | Description                          |
-| -------------------- | ------------------------------------- |
-| `npm run dev`        | Start the local dev server            |
-| `npm run build`      | Build for production                  |
-| `npm run build:dev`  | Build in development mode             |
-| `npm run preview`    | Preview the production build locally  |
-| `npm run lint`       | Run ESLint                            |
-| `npm run format`     | Format code with Prettier             |
+| ------------------- | ------------------------------------ |
+| `npm run dev`       | Start the local dev server           |
+| `npm run build`     | Build for production                 |
+| `npm run build:dev` | Build in development mode            |
+| `npm run preview`   | Preview the production build locally |
+| `npm run lint`      | Run ESLint                           |
+| `npm run format`    | Format code with Prettier            |
 
 ## Troubleshooting
 

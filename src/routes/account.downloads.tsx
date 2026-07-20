@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { orders } from "@/lib/mock-data";
-import { LicenseBadge } from "@/components/kna/components";
-import { assets } from "@/lib/mock-data";
+import { LicenseBadge, EmptyState } from "@/components/kna/components";
+import { useDownloads, useDownloadLink } from "@/hooks/use-downloads";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -20,7 +20,18 @@ export const Route = createFileRoute("/account/downloads")({
 });
 
 function Downloads() {
-  const items = orders.flatMap((o) => o.items.map((i) => ({ ...i, order: o })));
+  const { data: downloads, isPending, isError } = useDownloads();
+  const downloadLink = useDownloadLink();
+
+  const handleDownload = (id: string) => {
+    downloadLink.mutate(id, {
+      onSuccess: (link) => {
+        window.open(link.url, "_blank", "noopener,noreferrer");
+      },
+      onError: () => toast.error("Couldn't get a download link. Please try again."),
+    });
+  };
+
   return (
     <div>
       <p className="eyebrow">Licensed records</p>
@@ -29,53 +40,71 @@ function Downloads() {
         All watermark-free files you're licensed to use.
       </p>
 
-      <div className="mt-8 overflow-hidden border border-border">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-paper-warm">
-              <TableHead>Record</TableHead>
-              <TableHead>License</TableHead>
-              <TableHead>Downloads left</TableHead>
-              <TableHead>Expires</TableHead>
-              <TableHead className="text-right">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((it, i) => {
-              const asset = assets.find((a) => a.id === it.assetId) ?? assets[0];
-              return (
-                <TableRow key={i}>
+      {isPending ? (
+        <div className="mt-8 space-y-2">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      ) : isError ? (
+        <p className="mt-8 text-sm text-destructive">
+          Couldn't load your downloads. Please try again.
+        </p>
+      ) : downloads && downloads.length === 0 ? (
+        <div className="mt-8">
+          <EmptyState
+            icon={<Download className="h-5 w-5" />}
+            title="No downloads yet"
+            description="Once you license a record, its watermark-free file will show up here."
+          />
+        </div>
+      ) : (
+        <div className="mt-8 overflow-hidden border border-border">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-paper-warm">
+                <TableHead>Record</TableHead>
+                <TableHead>License</TableHead>
+                <TableHead>Downloads left</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {downloads?.map((d) => (
+                <TableRow key={d.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="h-12 w-16 shrink-0 overflow-hidden bg-ink">
-                        <img src={asset.image} alt="" className="bw h-full w-full object-cover" />
+                        <img src={d.thumbnail} alt="" className="bw h-full w-full object-cover" />
                       </div>
                       <div className="min-w-0">
-                        <p className="line-clamp-1 text-sm font-medium">{it.title}</p>
-                        <p className="text-xs text-muted-foreground">{it.order.number}</p>
+                        <p className="line-clamp-1 text-sm font-medium">{d.asset_title}</p>
+                        <p className="text-xs text-muted-foreground">{d.order_number}</p>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <LicenseBadge type={it.license} />
+                    <LicenseBadge type={d.license_name as never} />
                   </TableCell>
-                  <TableCell className="tabular-nums text-sm">{5 - i} of 5</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">2026-12-31</TableCell>
+                  <TableCell className="tabular-nums text-sm">
+                    {Math.max(0, d.max_downloads - d.download_count)} of {d.max_downloads}
+                  </TableCell>
                   <TableCell className="text-right">
                     <Button
                       size="sm"
                       className="rounded-none bg-ink text-paper hover:bg-ink/90"
-                      onClick={() => toast.success("Download link sent to your email.")}
+                      onClick={() => handleDownload(d.id)}
+                      disabled={downloadLink.isPending || d.download_count >= d.max_downloads}
                     >
                       <Download className="mr-1.5 h-3 w-3" /> Download
                     </Button>
                   </TableCell>
                 </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }

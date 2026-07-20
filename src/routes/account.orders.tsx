@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { orders, formatKES, assets } from "@/lib/mock-data";
+import { formatKES } from "@/lib/mock-data";
+import { useOrders } from "@/hooks/use-orders";
 import { LicenseBadge, OrderStatusBadge } from "@/components/kna/components";
+import type { OrderStatus } from "@/lib/mock-data";
 import {
   Sheet,
   SheetContent,
@@ -18,95 +20,136 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ChevronRight } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/kna/components";
+import { ChevronRight, Receipt } from "lucide-react";
 
 export const Route = createFileRoute("/account/orders")({
   head: () => ({ meta: [{ title: "Order history — Urithi account" }] }),
   component: OrderHistory,
 });
 
+function toDisplayStatus(status: string): OrderStatus {
+  return (status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()) as OrderStatus;
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-KE", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 function OrderHistory() {
+  const { data: orders, isPending, isError } = useOrders();
+
   return (
     <div>
       <p className="eyebrow">All orders</p>
       <h1 className="mt-2 font-display text-4xl">Order history</h1>
 
-      <div className="mt-8 overflow-hidden border border-border">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-paper-warm">
-              <TableHead>Order #</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Records</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Total</TableHead>
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {orders.map((o) => (
-              <TableRow key={o.id}>
-                <TableCell className="font-medium">{o.number}</TableCell>
-                <TableCell className="text-muted-foreground">{o.date}</TableCell>
-                <TableCell>{o.items.length}</TableCell>
-                <TableCell>
-                  <OrderStatusBadge status={o.status} />
-                </TableCell>
-                <TableCell className="text-right tabular-nums font-medium">
-                  {formatKES(o.total)}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Sheet>
-                    <SheetTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        Details <ChevronRight className="ml-1 h-3 w-3" />
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-                      <SheetHeader>
-                        <SheetTitle className="font-display text-2xl">{o.number}</SheetTitle>
-                        <SheetDescription>Placed {o.date}</SheetDescription>
-                      </SheetHeader>
-                      <div className="mt-6 space-y-4">
-                        <div className="flex items-center justify-between border-b border-border pb-3">
-                          <OrderStatusBadge status={o.status} />
-                          <span className="font-display text-2xl tabular-nums">
-                            {formatKES(o.total)}
-                          </span>
-                        </div>
-                        {o.items.map((it, i) => {
-                          const asset = assets.find((a) => a.id === it.assetId) ?? assets[0];
-                          return (
+      {isPending ? (
+        <div className="mt-8 space-y-2">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      ) : isError ? (
+        <p className="mt-8 text-sm text-destructive">
+          Couldn't load your orders. Please try again.
+        </p>
+      ) : orders && orders.length === 0 ? (
+        <div className="mt-8">
+          <EmptyState
+            icon={<Receipt className="h-5 w-5" />}
+            title="No orders yet"
+            description="Your licensed records will show up here once you make a purchase."
+          />
+        </div>
+      ) : (
+        <div className="mt-8 overflow-hidden border border-border">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-paper-warm">
+                <TableHead>Order #</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Records</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {orders?.map((o) => (
+                <TableRow key={o.id}>
+                  <TableCell className="font-medium">{o.order_number}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatDate(o.created_at)}
+                  </TableCell>
+                  <TableCell>{o.item_count}</TableCell>
+                  <TableCell>
+                    <OrderStatusBadge status={toDisplayStatus(o.status)} />
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums font-medium">
+                    {formatKES(o.total)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Sheet>
+                      <SheetTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          Details <ChevronRight className="ml-1 h-3 w-3" />
+                        </Button>
+                      </SheetTrigger>
+                      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+                        <SheetHeader>
+                          <SheetTitle className="font-display text-2xl">
+                            {o.order_number}
+                          </SheetTitle>
+                          <SheetDescription>Placed {formatDate(o.created_at)}</SheetDescription>
+                        </SheetHeader>
+                        <div className="mt-6 space-y-4">
+                          <div className="flex items-center justify-between border-b border-border pb-3">
+                            <OrderStatusBadge status={toDisplayStatus(o.status)} />
+                            <span className="font-display text-2xl tabular-nums">
+                              {formatKES(o.total)}
+                            </span>
+                          </div>
+                          {o.items.map((it) => (
                             <div
-                              key={i}
+                              key={it.id}
                               className="flex gap-3 border-b border-border pb-4 last:border-b-0"
                             >
                               <div className="h-16 w-20 shrink-0 overflow-hidden bg-ink">
                                 <img
-                                  src={asset.image}
+                                  src={it.asset.thumbnail}
                                   alt=""
                                   className="bw h-full w-full object-cover"
                                 />
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="line-clamp-2 text-sm font-medium">{it.title}</p>
+                                <p className="line-clamp-2 text-sm font-medium">
+                                  {it.asset_title_snapshot}
+                                </p>
                                 <div className="mt-1 flex items-center gap-2">
-                                  <LicenseBadge type={it.license} />
+                                  <LicenseBadge type={it.license.name as never} />
                                 </div>
                               </div>
-                              <p className="text-sm tabular-nums">{formatKES(it.price)}</p>
+                              <p className="text-sm tabular-nums">
+                                {formatKES(it.price_at_purchase)}
+                              </p>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                          ))}
+                        </div>
+                      </SheetContent>
+                    </Sheet>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }

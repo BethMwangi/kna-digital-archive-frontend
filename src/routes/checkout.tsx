@@ -4,8 +4,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { SiteShell } from "@/components/kna/site-shell";
 import { formatKES } from "@/lib/mock-data";
 import { useCart } from "@/hooks/use-cart";
+import { useInitiatePayment, useSimulatePayment } from "@/hooks/use-payments";
 import { checkout } from "@/lib/api/orders";
-import type { OrderOut } from "@/lib/api/types";
+import type { OrderOut, PaymentOut } from "@/lib/api/types";
 import { queryKeys } from "@/lib/api/query-keys";
 import { RequireAuth } from "@/lib/auth/protected-route";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
-import { Check, Lock } from "lucide-react";
+import { Check, Lock, XCircle } from "lucide-react";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout — Urithi Digital Archive" }] }),
@@ -26,22 +27,106 @@ export const Route = createFileRoute("/checkout")({
   ),
 });
 
+interface BillingDetails {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  organisation: string;
+  address: string;
+  city: string;
+  postalCode: string;
+}
+
+const EMPTY_BILLING: BillingDetails = {
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  organisation: "",
+  address: "",
+  city: "",
+  postalCode: "",
+};
+
 function CheckoutPage() {
   const [order, setOrder] = useState<OrderOut | null>(null);
+  const [payment, setPayment] = useState<PaymentOut | null>(null);
+  const [paid, setPaid] = useState(false);
+  const [billing, setBilling] = useState<BillingDetails>(EMPTY_BILLING);
   const { data: cart, isPending } = useCart();
   const items = cart?.items ?? [];
   const queryClient = useQueryClient();
 
   const placeOrder = useMutation({
     mutationFn: () => checkout(),
-    onSuccess: (created) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart });
-      setOrder(created);
-    },
     onError: () => toast.error("Couldn't complete checkout. Please try again."),
   });
+  const initiate = useInitiatePayment();
+  const simulate = useSimulatePayment();
 
-  if (order) return <SuccessScreen order={order} />;
+  const handleCheckout = () => {
+    if (!billing.firstName.trim() || !billing.lastName.trim()) {
+      toast.error("Please enter your first and last name.");
+      return;
+    }
+    if (!billing.email.trim() || !billing.email.includes("@")) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    if (!billing.phone.trim()) {
+      toast.error("Please enter a phone number.");
+      return;
+    }
+
+    placeOrder.mutate(undefined, {
+      onSuccess: (created) => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.cart });
+        setOrder(created);
+        initiate.mutate(
+          { order_id: created.id, provider: "mock" },
+          {
+            onSuccess: (p) => setPayment(p),
+            onError: () =>
+              toast.error("Order placed, but starting payment failed. Try again below."),
+          },
+        );
+      },
+    });
+  };
+
+  const handleRetryPayment = () => {
+    if (!order) return;
+    initiate.mutate({ order_id: order.id, provider: "mock" }, { onSuccess: (p) => setPayment(p) });
+  };
+
+  const handleSimulate = (outcome: "success" | "failure") => {
+    if (!payment) return;
+    simulate.mutate(
+      { paymentId: payment.id, input: { outcome } },
+      {
+        onSuccess: (updated) => {
+          setPayment(updated);
+          if (outcome === "success") setPaid(true);
+          else toast.error("Payment failed. You can try again below.");
+        },
+        onError: () => toast.error("Couldn't reach the payment gateway. Try again."),
+      },
+    );
+  };
+
+  if (order && paid) return <SuccessScreen order={order} />;
+  if (order) {
+    return (
+      <PaymentStep
+        order={order}
+        isInitiating={initiate.isPending}
+        isSimulating={simulate.isPending}
+        onSimulate={handleSimulate}
+        onRetry={handleRetryPayment}
+      />
+    );
+  }
 
   return (
     <SiteShell>
@@ -104,22 +189,53 @@ function CheckoutPage() {
             <section>
               <SectionTitle n="03" title="Billing details" />
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <Field label="First name" defaultValue="Wanjiku" />
-                <Field label="Last name" defaultValue="Kamau" />
-                <Field label="Email" type="email" defaultValue="wanjiku@example.co.ke" />
-                <Field label="Phone" defaultValue="+254 712 000 000" />
+                <Field
+                  label="First name"
+                  required
+                  value={billing.firstName}
+                  onChange={(e) => setBilling((b) => ({ ...b, firstName: e.target.value }))}
+                />
+                <Field
+                  label="Last name"
+                  required
+                  value={billing.lastName}
+                  onChange={(e) => setBilling((b) => ({ ...b, lastName: e.target.value }))}
+                />
+                <Field
+                  label="Email"
+                  type="email"
+                  required
+                  value={billing.email}
+                  onChange={(e) => setBilling((b) => ({ ...b, email: e.target.value }))}
+                />
+                <Field
+                  label="Phone"
+                  required
+                  value={billing.phone}
+                  onChange={(e) => setBilling((b) => ({ ...b, phone: e.target.value }))}
+                />
                 <Field
                   label="Organisation (optional)"
-                  defaultValue="Nation Media Group"
                   className="sm:col-span-2"
+                  value={billing.organisation}
+                  onChange={(e) => setBilling((b) => ({ ...b, organisation: e.target.value }))}
                 />
                 <Field
                   label="Address"
-                  defaultValue="P.O. Box 49010, Nairobi"
                   className="sm:col-span-2"
+                  value={billing.address}
+                  onChange={(e) => setBilling((b) => ({ ...b, address: e.target.value }))}
                 />
-                <Field label="City" defaultValue="Nairobi" />
-                <Field label="Postal code" defaultValue="00100" />
+                <Field
+                  label="City"
+                  value={billing.city}
+                  onChange={(e) => setBilling((b) => ({ ...b, city: e.target.value }))}
+                />
+                <Field
+                  label="Postal code"
+                  value={billing.postalCode}
+                  onChange={(e) => setBilling((b) => ({ ...b, postalCode: e.target.value }))}
+                />
               </div>
 
               <div className="mt-6 flex items-start gap-3 border border-border bg-paper-warm p-4">
@@ -146,17 +262,85 @@ function CheckoutPage() {
               <Button
                 className="mt-6 w-full rounded-none bg-flag-green text-paper hover:bg-flag-green/90"
                 size="lg"
-                onClick={() => placeOrder.mutate()}
-                disabled={placeOrder.isPending || items.length === 0}
+                onClick={handleCheckout}
+                disabled={placeOrder.isPending || initiate.isPending || items.length === 0}
               >
                 <Lock className="mr-2 h-4 w-4" />
-                {placeOrder.isPending ? "Processing…" : `Pay ${formatKES(cart?.total ?? 0)}`}
+                {placeOrder.isPending || initiate.isPending
+                  ? "Processing…"
+                  : `Pay ${formatKES(cart?.total ?? 0)}`}
               </Button>
               <p className="mt-3 text-center text-xs text-muted-foreground">
                 Secured with TLS 1.3 · PCI DSS compliant
               </p>
             </div>
           </aside>
+        </div>
+      </div>
+    </SiteShell>
+  );
+}
+
+/**
+ * Mock payment gateway step: order is created (pending) and a Payment has
+ * been initiated — this stands in for redirecting to a real provider. The
+ * two buttons call POST /payments/{id}/simulate/ directly, matching the
+ * documented test sequence.
+ */
+function PaymentStep({
+  order,
+  isInitiating,
+  isSimulating,
+  onSimulate,
+  onRetry,
+}: {
+  order: OrderOut;
+  isInitiating: boolean;
+  isSimulating: boolean;
+  onSimulate: (outcome: "success" | "failure") => void;
+  onRetry: () => void;
+}) {
+  return (
+    <SiteShell>
+      <div className="mx-auto max-w-md px-4 py-24 md:px-8">
+        <div className="border border-border bg-paper-warm p-8 text-center">
+          <p className="eyebrow">Mock payment gateway</p>
+          <p className="mt-3 font-display text-3xl tabular-nums">{formatKES(order.total)}</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Order {order.id} · this stands in for a real provider redirect.
+          </p>
+
+          {isInitiating ? (
+            <div className="mt-8 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Lock className="h-4 w-4 animate-pulse" /> Starting payment…
+            </div>
+          ) : (
+            <div className="mt-8 space-y-2">
+              <Button
+                className="w-full rounded-none bg-flag-green text-paper hover:bg-flag-green/90"
+                size="lg"
+                onClick={() => onSimulate("success")}
+                disabled={isSimulating}
+              >
+                {isSimulating ? "Processing…" : "Simulate successful payment"}
+              </Button>
+              <Button
+                className="w-full rounded-none"
+                variant="outline"
+                size="lg"
+                onClick={() => onSimulate("failure")}
+                disabled={isSimulating}
+              >
+                <XCircle className="mr-2 h-4 w-4" /> Simulate failed payment
+              </Button>
+              <button
+                onClick={onRetry}
+                className="mt-2 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+              >
+                Start a new payment attempt
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </SiteShell>
@@ -170,17 +354,17 @@ function SuccessScreen({ order }: { order: OrderOut }) {
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[oklch(0.55_0.14_150)]/10 text-[oklch(0.35_0.14_150)]">
           <Check className="h-6 w-6" />
         </div>
-        <p className="eyebrow mt-6">Order placed</p>
+        <p className="eyebrow mt-6">Payment received</p>
         <h1 className="mt-3 font-display text-4xl md:text-5xl">Thank you.</h1>
         <p className="mt-4 text-muted-foreground">
-          Your order has been recorded. Downloads will appear in your account once payment is
-          confirmed.
+          Your downloads are ready, and a receipt is on its way to your email.
         </p>
         <div className="mt-8 inline-block border border-border bg-paper-warm px-8 py-6 text-left">
           <p className="eyebrow">Order number</p>
           <p className="mt-1 font-display text-2xl">{order.id}</p>
           <p className="mt-3 text-sm text-muted-foreground">
-            Total <span className="tabular-nums text-foreground">{formatKES(order.total)}</span>
+            Total paid{" "}
+            <span className="tabular-nums text-foreground">{formatKES(order.total)}</span>
           </p>
         </div>
         <div className="mt-8 flex flex-wrap justify-center gap-3">

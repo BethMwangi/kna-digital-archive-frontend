@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   getAsset,
@@ -7,12 +8,16 @@ import {
   listFeaturedAssets,
   listLatestAssets,
   listTags,
+  searchAssets,
+  suggestAssets,
   type AssetListParams,
+  type AssetSearchParams,
 } from "@/lib/api/assets";
 import { listLicenses } from "@/lib/api/licenses";
 import { queryKeys } from "@/lib/api/query-keys";
 
 const FIVE_MIN = 5 * 60 * 1000;
+const SUGGEST_DEBOUNCE_MS = 200;
 
 /** Paginated, filterable browse query. keepPreviousData stops the grid
  *  flashing empty while a new page/filter loads. */
@@ -67,5 +72,32 @@ export function useLicenses() {
     queryKey: queryKeys.taxonomy.licenses,
     queryFn: listLicenses,
     staleTime: FIVE_MIN,
+  });
+}
+
+/** Full results page — fires on Enter/submit, not on every keystroke (see useAssetSuggestions for that). */
+export function useAssetSearch(params: AssetSearchParams) {
+  return useQuery({
+    queryKey: queryKeys.assets.search(params),
+    queryFn: () => searchAssets(params),
+    enabled: Boolean(params.q),
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Live dropdown — debounced internally so callers can just pass the raw input value on every keystroke. */
+export function useAssetSuggestions(q: string) {
+  const [debouncedQ, setDebouncedQ] = useState(q);
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedQ(q), SUGGEST_DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [q]);
+
+  return useQuery({
+    queryKey: queryKeys.assets.suggest(debouncedQ),
+    queryFn: () => suggestAssets(debouncedQ),
+    enabled: debouncedQ.trim().length > 0,
+    placeholderData: keepPreviousData,
   });
 }

@@ -4,6 +4,8 @@ import type { OrderOut, Paginated } from "./types";
 function fixOrder(order: OrderOut): OrderOut {
   return {
     ...order,
+    subtotal: toNumber(order.subtotal),
+    tax: toNumber(order.tax),
     total: toNumber(order.total),
     items: order.items.map((item) => ({
       ...item,
@@ -26,7 +28,7 @@ export async function checkout(input: CheckoutInput = {}): Promise<OrderOut> {
   return fixOrder(data);
 }
 
-/** GET /orders/ — TODO(api): confirm paginated vs bare-array shape once verified. */
+/** GET /orders/ — order history, newest first. */
 export async function listOrders(): Promise<OrderOut[]> {
   const data = await apiClient.get<Paginated<OrderOut> | OrderOut[]>("/orders/");
   const orders = Array.isArray(data) ? data : data.results;

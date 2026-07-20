@@ -158,6 +158,7 @@ export interface LicenseOut {
   name: string;
   slug: string;
   description: string;
+  allows_commercial?: boolean;
 }
 
 /** The asset fields nested directly in a cart item — no extra round-trip needed. */
@@ -182,24 +183,83 @@ export interface CartOut {
   item_count: number;
 }
 
-/**
- * POST /orders/checkout/ response. Field names beyond `id`/`total`/`items`
- * aren't fully confirmed yet — treat optional fields defensively until
- * verified against a real checkout response.
- */
+/** Mirrors OrderItem serializer — same shape in the list, detail, and checkout responses. */
 export interface OrderItemOut {
   id: string;
+  asset_title_snapshot: string;
   asset: CartItemAssetOut;
   license: LicenseOut;
   /** Frozen at purchase time — immune to later price changes. */
   price_at_purchase: number;
 }
 
+/** GET /orders/, GET /orders/{id}/, POST /orders/checkout/ response. */
 export interface OrderOut {
   id: string;
+  order_number: string;
   status: string;
   notes?: string;
   items: OrderItemOut[];
+  item_count: number;
+  subtotal: number;
+  tax: number;
   total: number;
+  currency: string;
   created_at: string;
+}
+
+/** POST /payments/initiate/ and /payments/{id}/ responses. */
+export interface PaymentOut {
+  id: string;
+  order: string;
+  provider: string;
+  /** e.g. "pending" | "success" | "failed" — full enum not yet confirmed. */
+  status: string;
+  /** Not yet confirmed on the response — assumed to mirror the order total. */
+  amount?: number;
+  /** Present on initiate — the mock gateway's own "Pay Now" test page. */
+  simulate_url?: string;
+  created_at: string;
+}
+
+/** GET /downloads/ — one purchased entitlement per (asset, license) line on a paid order. Flat shape, no nested asset/license objects. */
+export interface DownloadOut {
+  id: string;
+  asset_title: string;
+  asset_number: string;
+  thumbnail: string;
+  license_name: string;
+  order_number: string;
+  download_count: number;
+  max_downloads: number;
+  created_at?: string;
+}
+
+/** GET /downloads/{id}/link/ — a freshly minted signed URL, expires in 15 min. */
+export interface DownloadLinkOut {
+  url: string;
+  expires_at?: string;
+}
+
+/**
+ * GET /assets/search/ — raw DRF payload, no {success,message,data} envelope
+ * (unlike every other endpoint in this API — see assets.ts's searchAssets).
+ */
+export interface AssetSearchOut {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: AssetListItem[];
+  match_type: "text" | "fuzzy" | "none";
+  query: string;
+}
+
+/**
+ * GET /assets/suggest/ — top 8, minimal payload for the live dropdown.
+ * Fields beyond id/title/thumbnail aren't confirmed yet.
+ */
+export interface AssetSuggestionOut {
+  id: string;
+  title: string;
+  thumbnail: string;
 }

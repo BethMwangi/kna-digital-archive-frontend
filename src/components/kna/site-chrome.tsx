@@ -3,10 +3,12 @@ import { Search, User, ShoppingCart, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UrithiLogo } from "@/components/kna/logo";
 import { useCart } from "@/hooks/use-cart";
+import { useAuth } from "@/lib/auth/use-auth";
 
 export function SiteHeader() {
   const { data: cart } = useCart();
   const itemCount = cart?.item_count ?? 0;
+  const { isAuthenticated, isLoading } = useAuth();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
@@ -56,20 +58,26 @@ export function SiteHeader() {
               )}
             </Link>
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            asChild
-            aria-label="Account"
-            className="hidden sm:inline-flex"
-          >
-            <Link to="/account">
-              <User className="h-4 w-4" />
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild className="hidden md:inline-flex">
-            <Link to="/auth/login">Sign in</Link>
-          </Button>
+          {!isLoading && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                asChild
+                aria-label="Account"
+                className="hidden sm:inline-flex"
+              >
+                <Link to="/account">
+                  <User className="h-4 w-4" />
+                </Link>
+              </Button>
+              {!isAuthenticated && (
+                <Button variant="outline" size="sm" asChild className="hidden md:inline-flex">
+                  <Link to="/auth/login">Sign in</Link>
+                </Button>
+              )}
+            </>
+          )}
           <Button variant="ghost" size="icon" className="md:hidden" aria-label="Menu">
             <Menu className="h-4 w-4" />
           </Button>

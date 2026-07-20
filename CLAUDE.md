@@ -100,6 +100,7 @@ marked with a `// TODO(api): replace with GET /api/v1/...` comment pointing at i
 endpoint.
 
 Migrating a resource off mock data means repeating the auth/users pattern end-to-end:
+
 1. Add response types to `src/lib/api/types.ts` (or a dedicated `assets.ts` types block) mirroring
    the backend serializer — check whether the endpoint uses the enveloped or raw-DRF convention.
 2. Add `src/lib/api/assets.ts` (list/get, and collections/categories if they're separate

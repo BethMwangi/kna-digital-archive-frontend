@@ -3,6 +3,8 @@ import { API_BASE_URL } from "./config";
 import type {
   AssetDetail,
   AssetListItem,
+  AssetSearchOut,
+  AssetSuggestionOut,
   CategoryOut,
   CollectionOut,
   Paginated,
@@ -12,7 +14,9 @@ import type {
 /**
  * Filters map 1:1 to DigitalAssetViewSet's backends:
  * DjangoFilterBackend (category/collection/asset_type by UUID),
- * SearchFilter (?search=), OrderingFilter (?ordering=).
+ * SearchFilter (?search=), OrderingFilter (?ordering=). date_from/date_to/year
+ * are the same date filters the search endpoint uses, also honored here for
+ * plain browse/category pages.
  */
 export interface AssetListParams {
   page?: number;
@@ -21,6 +25,21 @@ export interface AssetListParams {
   collection?: string; // Collection UUID
   asset_type?: string; // "photograph" | "newspaper" | ...
   ordering?: "publication_date" | "-publication_date" | "created_at" | "-created_at";
+  date_from?: string;
+  date_to?: string;
+  year?: number;
+}
+
+/** GET /assets/search/ takes the same filters as listAssets, minus ordering, plus the query itself. */
+export interface AssetSearchParams {
+  q: string;
+  category?: string;
+  collection?: string;
+  asset_type?: string;
+  date_from?: string;
+  date_to?: string;
+  year?: number;
+  page?: number;
 }
 
 function qs(params: object): string {
@@ -118,4 +137,27 @@ export function listCollections(): Promise<CollectionOut[]> {
 /** GET /tags/ */
 export function listTags(): Promise<TagOut[]> {
   return listAllPaginated<TagOut>("/tags/");
+}
+
+/**
+ * GET /assets/search/ — ranked full-text with typo fallback. Unlike every
+ * other endpoint here, the response has no {success,message,data} envelope —
+ * `match_type`/`query` sit at the top level alongside the DRF pagination
+ * fields, so this must be unwrap:false.
+ */
+export async function searchAssets(params: AssetSearchParams): Promise<AssetSearchOut> {
+  const data = await apiClient.get<AssetSearchOut>(`/assets/search/${qs(params)}`, {
+    skipAuth: true,
+    unwrap: false,
+  });
+  return { ...data, results: data.results.map(fixListItem) };
+}
+
+/** GET /assets/suggest/ — top 8, minimal payload for a live dropdown. Debounce ~150–250ms on keystroke. */
+export async function suggestAssets(q: string): Promise<AssetSuggestionOut[]> {
+  if (!q) return [];
+  const data = await apiClient.get<AssetSuggestionOut[]>(`/assets/suggest/${qs({ q })}`, {
+    skipAuth: true,
+  });
+  return data.map((item) => ({ ...item, thumbnail: fixMediaUrl(item.thumbnail) }));
 }

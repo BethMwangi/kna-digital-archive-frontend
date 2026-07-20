@@ -1,5 +1,5 @@
 import type { AdminUserListParams } from "./admin-users";
-import type { AssetListParams } from "./assets";
+import type { AssetListParams, AssetSearchParams } from "./assets";
 
 export const queryKeys = {
   me: ["me"] as const,
@@ -9,6 +9,8 @@ export const queryKeys = {
     detail: (id: string) => ["assets", "detail", id] as const,
     featured: ["assets", "featured"] as const,
     latest: ["assets", "latest"] as const,
+    search: (params: AssetSearchParams) => ["assets", "search", params] as const,
+    suggest: (q: string) => ["assets", "suggest", q] as const,
   },
   taxonomy: {
     categories: ["categories"] as const,
@@ -17,4 +19,13 @@ export const queryKeys = {
     licenses: ["licenses"] as const,
   },
   cart: ["cart"] as const,
+  payments: {
+    list: (orderId?: string) => ["payments", "list", orderId] as const,
+    detail: (id: string) => ["payments", "detail", id] as const,
+  },
+  downloads: ["downloads"] as const,
+  orders: {
+    list: ["orders", "list"] as const,
+    detail: (id: string) => ["orders", "detail", id] as const,
+  },
 };
