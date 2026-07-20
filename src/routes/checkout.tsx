@@ -9,6 +9,7 @@ import { checkout } from "@/lib/api/orders";
 import type { OrderOut, PaymentOut } from "@/lib/api/types";
 import { queryKeys } from "@/lib/api/query-keys";
 import { RequireAuth } from "@/lib/auth/protected-route";
+import { useAuth } from "@/lib/auth/use-auth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,7 +54,17 @@ function CheckoutPage() {
   const [order, setOrder] = useState<OrderOut | null>(null);
   const [payment, setPayment] = useState<PaymentOut | null>(null);
   const [paid, setPaid] = useState(false);
-  const [billing, setBilling] = useState<BillingDetails>(EMPTY_BILLING);
+  const { user } = useAuth();
+  const [billing, setBilling] = useState<BillingDetails>(() => ({
+    firstName: user?.first_name || "",
+    lastName: user?.last_name || "",
+    email: user?.email || "",
+    phone: user?.phone_number || "",
+    organisation: "",
+    address: "",
+    city: "",
+    postalCode: "",
+  }));
   const { data: cart, isPending } = useCart();
   const items = cart?.items ?? [];
   const queryClient = useQueryClient();

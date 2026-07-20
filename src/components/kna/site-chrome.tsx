@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { UrithiLogo } from "@/components/kna/logo";
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/lib/auth/use-auth";
+import { buttonVariants } from "@/components/ui/button";
 
 export function SiteHeader() {
   const { data: cart } = useCart();
@@ -43,34 +44,36 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1">
-          <Button variant="ghost" size="icon" asChild aria-label="Search">
-            <Link to="/browse">
-              <Search className="h-4 w-4" />
-            </Link>
-          </Button>
-          <Button variant="ghost" size="icon" asChild aria-label="Cart" className="relative">
-            <Link to="/cart">
-              <ShoppingCart className="h-4 w-4" />
-              {itemCount > 0 && (
-                <span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-flag-red px-1 text-[0.6rem] font-semibold leading-none text-paper">
-                  {itemCount > 9 ? "9+" : itemCount}
-                </span>
-              )}
-            </Link>
-          </Button>
+          <Link
+            to="/browse"
+            aria-label="Search"
+            className={buttonVariants({ variant: "ghost", size: "icon" })}
+          >
+            <Search className="h-4 w-4" />
+          </Link>
+          <Link
+            to="/cart"
+            aria-label="Cart"
+            className={buttonVariants({ variant: "ghost", size: "icon" }) + " relative"}
+          >
+            <ShoppingCart className="h-4 w-4" />
+            {itemCount > 0 && (
+              <span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-flag-red px-1 text-[0.6rem] font-semibold leading-none text-paper">
+                {itemCount > 9 ? "9+" : itemCount}
+              </span>
+            )}
+          </Link>
           {!isLoading && (
             <>
-              <Button
-                variant="ghost"
-                size="icon"
-                asChild
+              <Link
+                to="/account/profile"
                 aria-label="Account"
-                className="hidden sm:inline-flex"
+                className={
+                  buttonVariants({ variant: "ghost", size: "icon" }) + " hidden sm:inline-flex"
+                }
               >
-                <Link to="/account">
-                  <User className="h-4 w-4" />
-                </Link>
-              </Button>
+                <User className="h-4 w-4" />
+              </Link>
               {!isAuthenticated && (
                 <Button variant="outline" size="sm" asChild className="hidden md:inline-flex">
                   <Link to="/auth/login">Sign in</Link>

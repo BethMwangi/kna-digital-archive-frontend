@@ -1,7 +1,7 @@
+import { useSearch, useNavigate } from "@tanstack/react-router";
 import { SiteShell } from "@/components/kna/site-shell";
 import { AssetCard, EmptyState, SearchBar, type AssetCardData } from "@/components/kna/components";
-import { categories, collections } from "@/lib/mock-data";
-import { useAssets } from "@/hooks/use-assets";
+import { useAssets, useAssetSearch, useCategories, useCollections } from "@/hooks/use-assets";
 import type { AssetListItem } from "@/lib/api/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -43,8 +43,28 @@ function toCard(a: AssetListItem): AssetCardData {
 }
 
 export function BrowsePage() {
-  const [page, setPage] = useState(1);
-  const { data, isPending, isError, isFetching } = useAssets({ page });
+  const search = useSearch({ from: "/browse" });
+  const navigate = useNavigate({ from: "/browse" });
+
+  const page = search.page || 1;
+  const q = search.q;
+  const categoryParam = search.category;
+  const collectionParam = search.collection;
+
+  const hasQ = Boolean(q);
+  const assetsQuery = useAssets({ page, category: categoryParam, collection: collectionParam });
+  const searchQuery = useAssetSearch({
+    page,
+    q: q || "",
+    category: categoryParam,
+    collection: collectionParam,
+  });
+
+  const { data, isPending, isError, isFetching } = hasQ ? searchQuery : assetsQuery;
+
+  const { data: categoriesData } = useCategories();
+  const { data: collectionsData } = useCollections();
+
   const results = data?.results ?? [];
   const total = data?.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -56,7 +76,7 @@ export function BrowsePage() {
   // however long the request takes (a slow/cold backend can make that look
   // completely broken). isFetching stays true for that whole window.
   function goToPage(next: number) {
-    setPage(next);
+    navigate({ search: (prev) => ({ ...prev, page: next }) });
     resultsRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
   }
 
@@ -70,10 +90,7 @@ export function BrowsePage() {
             {total.toLocaleString()} catalogued records in the archive.
           </p>
           <div className="mt-6 max-w-3xl">
-            <SearchBar
-              defaultValue="Kenyatta"
-              chips={["Politics", "1960s", "Nairobi", "Editorial license"]}
-            />
+            <SearchBar defaultValue={q} chips={[]} />
           </div>
         </div>
       </div>
@@ -82,21 +99,49 @@ export function BrowsePage() {
         {/* Filters */}
         <aside className="space-y-8">
           <FilterGroup title="Keyword">
-            <Input placeholder="Refine by keyword" defaultValue="Kenyatta" />
+            <SearchBar defaultValue={q} />
           </FilterGroup>
 
           <FilterGroup title="Category">
             <div className="space-y-2">
-              {categories.slice(0, 6).map((c) => (
-                <FilterCheck key={c.id} label={c.name} count={c.count} />
+              {categoriesData?.slice(0, 6).map((c) => (
+                <FilterCheck
+                  key={c.id}
+                  label={c.name}
+                  count={c.count}
+                  checked={categoryParam === c.id}
+                  onCheckedChange={(checked) => {
+                    navigate({
+                      search: (prev) => ({
+                        ...prev,
+                        category: checked ? c.id : undefined,
+                        page: 1,
+                      }),
+                    });
+                  }}
+                />
               ))}
             </div>
           </FilterGroup>
 
           <FilterGroup title="Collection">
             <div className="space-y-2">
-              {collections.map((c) => (
-                <FilterCheck key={c.id} label={c.title} count={c.count} />
+              {collectionsData?.slice(0, 6).map((c) => (
+                <FilterCheck
+                  key={c.id}
+                  label={c.title || c.name}
+                  count={c.count}
+                  checked={collectionParam === c.id}
+                  onCheckedChange={(checked) => {
+                    navigate({
+                      search: (prev) => ({
+                        ...prev,
+                        collection: checked ? c.id : undefined,
+                        page: 1,
+                      }),
+                    });
+                  }}
+                />
               ))}
             </div>
           </FilterGroup>
@@ -265,11 +310,21 @@ function FilterGroup({ title, children }: { title: string; children: React.React
     </div>
   );
 }
-function FilterCheck({ label, count }: { label: string; count?: number }) {
+function FilterCheck({
+  label,
+  count,
+  checked,
+  onCheckedChange,
+}: {
+  label: string;
+  count?: number;
+  checked?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
+}) {
   const id = `f-${label}`;
   return (
     <div className="flex items-center gap-2">
-      <Checkbox id={id} />
+      <Checkbox id={id} checked={checked} onCheckedChange={onCheckedChange} />
       <Label htmlFor={id} className="flex flex-1 items-center justify-between text-sm font-normal">
         <span>{label}</span>
         {count && (
