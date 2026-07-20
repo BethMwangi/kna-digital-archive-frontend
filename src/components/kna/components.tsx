@@ -223,10 +223,7 @@ export function SearchBar({
 }) {
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const q = formData.get("q") as string;
+  const handleSearch = (q: string) => {
     if (q) {
       navigate({ to: "/browse", search: { q } });
     } else {
@@ -237,7 +234,7 @@ export function SearchBar({
   return (
     <div className="w-full">
       <form
-        onSubmit={handleSubmit}
+        onSubmit={(e) => e.preventDefault()}
         className={cn(
           "flex w-full items-center gap-2 border border-border bg-background",
           size === "lg" ? "p-2" : "p-1.5",
@@ -250,20 +247,13 @@ export function SearchBar({
           name="q"
           defaultValue={defaultValue}
           placeholder={placeholder}
+          onChange={(e) => handleSearch(e.target.value)}
           className={cn(
             "border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0",
             size === "lg" ? "h-12 text-base" : "h-9 text-sm",
           )}
         />
-        {action ?? (
-          <Button
-            type="submit"
-            size={size === "lg" ? "lg" : "default"}
-            className="rounded-none bg-flag-green text-paper hover:bg-flag-green/90"
-          >
-            Search
-          </Button>
-        )}
+        {action}
       </form>
       {chips.length > 0 && (
         <div className="mt-3 flex flex-wrap items-center gap-2">

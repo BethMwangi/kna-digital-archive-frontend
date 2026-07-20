@@ -22,11 +22,7 @@ import { Check, Lock, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout — Urithi Digital Archive" }] }),
-  component: () => (
-    <RequireAuth>
-      <CheckoutPage />
-    </RequireAuth>
-  ),
+  component: CheckoutPage,
 });
 
 function CheckoutPage() {
