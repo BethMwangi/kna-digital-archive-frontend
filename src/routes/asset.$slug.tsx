@@ -352,7 +352,6 @@ function RealAssetDetail({ id }: { id: string }) {
 
           {isTwoSided && (
             <div className="mt-3">
-              <p className="eyebrow mb-2">Front &amp; back</p>
               <div className="flex gap-3">
                 <button
                   type="button"
