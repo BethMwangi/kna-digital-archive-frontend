@@ -17,6 +17,8 @@ export interface User {
   email_verified: boolean;
   last_login: string | null;
   created_at: string;
+  /** TODO(api): not yet a real backend field — profile.tsx's upload is currently simulated client-side. */
+  profile_picture?: string | null;
 }
 
 /** SDD §16.2 success envelope, returned by core.api_response. */

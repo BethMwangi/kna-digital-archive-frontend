@@ -74,27 +74,41 @@ function Profile() {
       <div className="mt-8 flex items-center gap-6 pb-8 border-b border-border">
         <div className="h-20 w-20 overflow-hidden rounded-full border border-border bg-ink relative group">
           {user?.profile_picture ? (
-            <img src={user.profile_picture} alt="" className="h-full w-full object-cover group-hover:opacity-50 transition-opacity" />
+            <img
+              src={user.profile_picture}
+              alt=""
+              className="h-full w-full object-cover group-hover:opacity-50 transition-opacity"
+            />
           ) : (
             <div className="h-full w-full flex items-center justify-center text-paper group-hover:opacity-50 transition-opacity">
               <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
               </svg>
             </div>
           )}
           <label className="absolute inset-0 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
-            <input 
-              type="file" 
-              className="hidden" 
+            <input
+              type="file"
+              className="hidden"
               accept="image/png, image/jpeg"
               onChange={(e) => {
                 if (e.target.files?.[0]) {
                   const toastId = toast.loading("Uploading photo...");
-                  setTimeout(() => toast.success("Profile photo updated! (Simulated)", { id: toastId }), 1500);
+                  setTimeout(
+                    () => toast.success("Profile photo updated! (Simulated)", { id: toastId }),
+                    1500,
+                  );
                 }
-              }} 
+              }}
             />
-            <span className="text-white bg-black/60 rounded px-2 py-1 text-[10px] font-bold">CHANGE</span>
+            <span className="text-white bg-black/60 rounded px-2 py-1 text-[10px] font-bold">
+              CHANGE
+            </span>
           </label>
         </div>
         <div>

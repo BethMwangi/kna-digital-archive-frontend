@@ -2,11 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { BrowsePage } from "@/components/kna/browse-page";
 
 export const Route = createFileRoute("/browse")({
-  validateSearch: (search: Record<string, unknown>): { q?: string } => {
-    return {
-      q: search.q as string | undefined,
-    };
-  },
   head: () => ({
     meta: [
       { title: "Browse the archive — Urithi" },

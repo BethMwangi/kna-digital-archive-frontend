@@ -301,9 +301,6 @@ function RealAssetDetail({ id }: { id: string }) {
       toast.error("Choose a license first.");
       return;
     }
-    const selectedLicense = licenses?.find((l) => l.id === selectedLicenseId);
-    if (!selectedLicense) return;
-
     addToCart.mutate(
       {
         asset_id: asset.id,
@@ -316,6 +313,7 @@ function RealAssetDetail({ id }: { id: string }) {
       {
         onSuccess: () => {
           toast.success("Added to cart.");
+          navigate({ to: "/cart" });
         },
         onError: (error) => {
           if (error instanceof ApiError && error.status === 409) {

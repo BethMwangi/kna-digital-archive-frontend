@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Navigate, useRouterState } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "./use-auth";
@@ -16,6 +16,18 @@ function FullScreenLoader() {
       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
     </div>
   );
+}
+
+function useAuthTimeout(isLoading: boolean): boolean {
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading) return;
+    const id = setTimeout(() => setTimedOut(true), AUTH_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [isLoading]);
+
+  return timedOut;
 }
 
 /**
@@ -36,6 +48,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   // so a live read here would redirect back to the login page itself instead
   // of the page that was actually being protected.
   const [protectedPathname] = useState(pathname);
+  const timedOut = useAuthTimeout(isLoading);
 
   if (isLoading && !timedOut) return <FullScreenLoader />;
   if (!isAuthenticated) {
@@ -49,6 +62,7 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading, isAdminOrAbove } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [protectedPathname] = useState(pathname);
+  const timedOut = useAuthTimeout(isLoading);
 
   if (isLoading && !timedOut) return <FullScreenLoader />;
   if (!isAuthenticated) {

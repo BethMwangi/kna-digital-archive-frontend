@@ -55,25 +55,21 @@ export function SiteHeader() {
                 </span>
               )}
             </Link>
-          ) : (
-            <>
-              <Button
-                variant="ghost"
-                size="icon"
-                asChild
-                aria-label="Account"
-                className="hidden sm:inline-flex"
-              >
-                <Link to="/account">
-                  <User className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button variant="outline" size="sm" asChild className="hidden md:inline-flex ml-1">
-                <Link to="/auth/login">Sign in</Link>
-              </Button>
-            </>
-          )}
-
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            asChild
+            aria-label="Account"
+            className="hidden sm:inline-flex"
+          >
+            <Link to="/account">
+              <User className="h-4 w-4" />
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild className="hidden md:inline-flex">
+            <Link to="/auth/login">Sign in</Link>
+          </Button>
           <Button variant="ghost" size="icon" className="md:hidden" aria-label="Menu">
             <Menu className="h-4 w-4" />
           </Button>
