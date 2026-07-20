@@ -3,6 +3,13 @@ import { Navigate, useRouterState } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "./use-auth";
 
+/**
+ * Max milliseconds to wait for the auth bootstrap before treating the user
+ * as unauthenticated and redirecting to login. Prevents an infinite spinner
+ * when the backend is unreachable or the refresh request hangs.
+ */
+const AUTH_TIMEOUT_MS = 5_000;
+
 function FullScreenLoader() {
   return (
     <div className="grid min-h-dvh place-items-center">
@@ -17,6 +24,9 @@ function FullScreenLoader() {
  * way to gate this during SSR; the guard runs after the client mounts and
  * the silent-refresh bootstrap resolves. Until then it shows a loader
  * rather than flashing protected content or bouncing straight to login.
+ *
+ * A safety timeout ensures the spinner never runs forever — if bootstrap
+ * hasn't resolved within AUTH_TIMEOUT_MS we treat the user as logged-out.
  */
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -27,7 +37,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   // of the page that was actually being protected.
   const [protectedPathname] = useState(pathname);
 
-  if (isLoading) return <FullScreenLoader />;
+  if (isLoading && !timedOut) return <FullScreenLoader />;
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" search={{ redirect: protectedPathname }} />;
   }
@@ -40,7 +50,7 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [protectedPathname] = useState(pathname);
 
-  if (isLoading) return <FullScreenLoader />;
+  if (isLoading && !timedOut) return <FullScreenLoader />;
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" search={{ redirect: protectedPathname }} />;
   }

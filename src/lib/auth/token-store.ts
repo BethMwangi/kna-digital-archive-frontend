@@ -117,10 +117,16 @@ export function refreshAccessToken(): Promise<string | null> {
   const refresh = readRefreshToken();
   if (!refresh) return Promise.resolve(null);
 
+  // Abort the request if the backend doesn't respond within 8 seconds,
+  // preventing the auth bootstrap from hanging indefinitely.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8_000);
+
   refreshPromise = fetch(`${API_BASE_URL}/auth/refresh`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refresh }),
+    signal: controller.signal,
   })
     .then(async (response) => {
       if (!response.ok) {
@@ -137,6 +143,7 @@ export function refreshAccessToken(): Promise<string | null> {
       return null;
     })
     .finally(() => {
+      clearTimeout(timeoutId);
       refreshPromise = null;
     });
 

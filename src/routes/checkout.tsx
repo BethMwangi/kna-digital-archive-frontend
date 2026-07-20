@@ -8,6 +8,9 @@ import { checkout } from "@/lib/api/orders";
 import type { OrderOut } from "@/lib/api/types";
 import { queryKeys } from "@/lib/api/query-keys";
 import { RequireAuth } from "@/lib/auth/protected-route";
+import { syncCart } from "@/lib/api/cart";
+import { apiClient } from "@/lib/api/client";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
-import { Check, Lock } from "lucide-react";
+import { Check, Lock, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout — Urithi Digital Archive" }] }),
