@@ -27,6 +27,11 @@ import { Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
 
 export const Route = createFileRoute("/browse")({
+  validateSearch: (search: Record<string, unknown>): { q?: string } => {
+    return {
+      q: search.q as string | undefined,
+    };
+  },
   head: () => ({
     meta: [
       { title: "Browse the archive — Urithi" },
@@ -58,8 +63,9 @@ function toCard(a: AssetListItem): AssetCardData {
 }
 
 export function BrowsePage() {
+  const { q } = Route.useSearch();
   const [page, setPage] = useState(1);
-  const { data, isPending, isError, isFetching } = useAssets({ page });
+  const { data, isPending, isError, isFetching } = useAssets({ page, search: q });
   const results = data?.results ?? [];
   const total = data?.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -86,7 +92,7 @@ export function BrowsePage() {
           </p>
           <div className="mt-6 max-w-3xl">
             <SearchBar
-              defaultValue="Kenyatta"
+              defaultValue={q ?? ""}
               chips={["Politics", "1960s", "Nairobi", "Editorial license"]}
             />
           </div>
@@ -97,7 +103,10 @@ export function BrowsePage() {
         {/* Filters */}
         <aside className="space-y-8">
           <FilterGroup title="Keyword">
-            <Input placeholder="Refine by keyword" defaultValue="Kenyatta" />
+            <Input
+              placeholder="Refine by keyword"
+              defaultValue={q ?? ""}
+            />
           </FilterGroup>
 
           <FilterGroup title="Category">

@@ -31,6 +31,16 @@ export async function listCart(): Promise<CartItemOut[]> {
   return data.map(fixCartItem);
 }
 
+/**
+ * POST /cart/sync/ — completely replaces the backend cart with these items.
+ * Used during checkout to sync the frontend local cart state.
+ * Returns the full cart detail (id, items, total, item_count).
+ */
+export async function syncCart(items: AddToCartInput[]): Promise<CartItemOut[]> {
+  const data = await apiClient.post<{ id: string; items: CartItemOut[]; total: number; item_count: number }>("/cart/sync/", { items });
+  return data.items.map(fixCartItem);
+}
+
 /** DELETE /cart/{id}/ — TODO(api): confirm this path once the endpoint ships. */
 export function removeFromCart(id: string): Promise<void> {
   return apiClient.delete<void>(`/cart/${id}/`);

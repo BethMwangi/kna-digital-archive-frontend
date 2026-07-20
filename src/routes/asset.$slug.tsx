@@ -301,8 +301,21 @@ function RealAssetDetail({ id }: { id: string }) {
       toast.error("Choose a license first.");
       return;
     }
+    const selectedLicense = licenses?.find((l) => l.id === selectedLicenseId);
+    if (!selectedLicense) return;
+
     addToCart.mutate(
-      { asset_id: asset.id, license_id: selectedLicenseId },
+      {
+        id: crypto.randomUUID(),
+        asset: {
+          id: asset.id,
+          title: asset.title,
+          thumbnail: asset.thumbnail,
+          price: asset.price,
+        },
+        license: selectedLicense,
+        subtotal: asset.price,
+      },
       {
         onSuccess: () => {
           toast.success("Added to cart.");

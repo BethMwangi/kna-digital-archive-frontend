@@ -1,8 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteShell } from "@/components/kna/site-shell";
 import { formatKES } from "@/lib/mock-data";
-import { useCart } from "@/hooks/use-cart";
+import { useCart, useCartStore } from "@/hooks/use-cart";
 import { RequireAuth } from "@/lib/auth/protected-route";
+import { syncCart } from "@/lib/api/cart";
+import { apiClient } from "@/lib/api/client";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
-import { Check, Lock } from "lucide-react";
+import { Check, Lock, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout — Urithi Digital Archive" }] }),
@@ -23,10 +26,27 @@ export const Route = createFileRoute("/checkout")({
 
 function CheckoutPage() {
   const [done, setDone] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const clearCart = useCartStore((s) => s.clearCart);
   const { data: items, isPending } = useCart();
   const subtotal = (items ?? []).reduce((s, i) => s + i.subtotal, 0);
   const vat = Math.round(subtotal * 0.16);
   const total = subtotal + vat;
+
+  const handleCheckout = async () => {
+    if (!items || items.length === 0) return;
+    setIsSubmitting(true);
+    try {
+      await syncCart(items.map((i) => ({ asset_id: i.asset.id, license_id: i.license.id })));
+      await apiClient.post("/orders/checkout/", { notes: "" });
+      clearCart();
+      setDone(true);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to checkout.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (done) return <SuccessScreen total={total} />;
 
@@ -133,9 +153,10 @@ function CheckoutPage() {
               <Button
                 className="mt-6 w-full rounded-none bg-flag-green text-paper hover:bg-flag-green/90"
                 size="lg"
-                onClick={() => setDone(true)}
+                onClick={handleCheckout}
+                disabled={isSubmitting || !items?.length}
               >
-                <Lock className="mr-2 h-4 w-4" /> Pay {formatKES(total)}
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />} Pay {formatKES(total)}
               </Button>
               <p className="mt-3 text-center text-xs text-muted-foreground">
                 Secured with TLS 1.3 · PCI DSS compliant

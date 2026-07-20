@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import type { LicenseType, OrderStatus } from "@/lib/mock-data";
@@ -221,9 +221,23 @@ export function SearchBar({
   action?: React.ReactNode;
   placeholder?: string;
 }) {
+  const navigate = useNavigate();
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const q = formData.get("q") as string;
+    if (q) {
+      navigate({ to: "/browse", search: { q } });
+    } else {
+      navigate({ to: "/browse" });
+    }
+  };
+
   return (
     <div className="w-full">
       <form
+        onSubmit={handleSubmit}
         className={cn(
           "flex w-full items-center gap-2 border border-border bg-background",
           size === "lg" ? "p-2" : "p-1.5",
@@ -233,6 +247,7 @@ export function SearchBar({
           className={cn("ml-2 text-muted-foreground", size === "lg" ? "h-5 w-5" : "h-4 w-4")}
         />
         <Input
+          name="q"
           defaultValue={defaultValue}
           placeholder={placeholder}
           className={cn(
