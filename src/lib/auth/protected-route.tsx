@@ -1,7 +1,14 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Navigate, useRouterState } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "./use-auth";
+
+/**
+ * Max milliseconds to wait for the auth bootstrap before treating the user
+ * as unauthenticated and redirecting to login. Prevents an infinite spinner
+ * when the backend is unreachable or the refresh request hangs.
+ */
+const AUTH_TIMEOUT_MS = 5_000;
 
 function FullScreenLoader() {
   return (
@@ -17,12 +24,22 @@ function FullScreenLoader() {
  * way to gate this during SSR; the guard runs after the client mounts and
  * the silent-refresh bootstrap resolves. Until then it shows a loader
  * rather than flashing protected content or bouncing straight to login.
+ *
+ * A safety timeout ensures the spinner never runs forever — if bootstrap
+ * hasn't resolved within AUTH_TIMEOUT_MS we treat the user as logged-out.
  */
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [timedOut, setTimedOut] = useState(false);
 
-  if (isLoading) return <FullScreenLoader />;
+  useEffect(() => {
+    if (!isLoading) return;
+    const id = setTimeout(() => setTimedOut(true), AUTH_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [isLoading]);
+
+  if (isLoading && !timedOut) return <FullScreenLoader />;
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" search={{ redirect: pathname }} />;
   }
@@ -33,8 +50,15 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 export function RequireAdmin({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading, isAdminOrAbove } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [timedOut, setTimedOut] = useState(false);
 
-  if (isLoading) return <FullScreenLoader />;
+  useEffect(() => {
+    if (!isLoading) return;
+    const id = setTimeout(() => setTimedOut(true), AUTH_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [isLoading]);
+
+  if (isLoading && !timedOut) return <FullScreenLoader />;
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" search={{ redirect: pathname }} />;
   }
