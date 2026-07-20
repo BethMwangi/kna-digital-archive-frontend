@@ -172,3 +172,32 @@ export interface CartItemOut {
   license: LicenseOut;
   subtotal: number;
 }
+
+/** GET /cart/ — every cart mutation (add/remove/clear) returns this same shape. */
+export interface CartOut {
+  items: CartItemOut[];
+  total: number;
+  item_count: number;
+}
+
+/**
+ * POST /orders/checkout/ response. Field names beyond `id`/`total`/`items`
+ * aren't fully confirmed yet — treat optional fields defensively until
+ * verified against a real checkout response.
+ */
+export interface OrderItemOut {
+  id: string;
+  asset: CartItemAssetOut;
+  license: LicenseOut;
+  /** Frozen at purchase time — immune to later price changes. */
+  price_at_purchase: number;
+}
+
+export interface OrderOut {
+  id: string;
+  status: string;
+  notes?: string;
+  items: OrderItemOut[];
+  total: number;
+  created_at: string;
+}

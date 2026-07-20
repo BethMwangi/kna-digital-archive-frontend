@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Navigate, useRouterState } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "./use-auth";
@@ -21,10 +21,15 @@ function FullScreenLoader() {
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Captured once at mount — useRouterState keeps tracking the live location,
+  // which has already moved to /auth/login by the time <Navigate> re-renders,
+  // so a live read here would redirect back to the login page itself instead
+  // of the page that was actually being protected.
+  const [protectedPathname] = useState(pathname);
 
   if (isLoading) return <FullScreenLoader />;
   if (!isAuthenticated) {
-    return <Navigate to="/auth/login" search={{ redirect: pathname }} />;
+    return <Navigate to="/auth/login" search={{ redirect: protectedPathname }} />;
   }
   return <>{children}</>;
 }
@@ -33,10 +38,11 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 export function RequireAdmin({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading, isAdminOrAbove } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [protectedPathname] = useState(pathname);
 
   if (isLoading) return <FullScreenLoader />;
   if (!isAuthenticated) {
-    return <Navigate to="/auth/login" search={{ redirect: pathname }} />;
+    return <Navigate to="/auth/login" search={{ redirect: protectedPathname }} />;
   }
   if (!isAdminOrAbove) {
     return (

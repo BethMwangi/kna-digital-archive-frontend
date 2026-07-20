@@ -1,9 +1,20 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as authApi from "@/lib/api/auth";
 import * as tokenStore from "@/lib/auth/token-store";
+import { queryKeys } from "@/lib/api/query-keys";
+import { mergeGuestCartIntoServer } from "@/lib/cart/merge-guest-cart";
 
 export function useLogin() {
-  return useMutation({ mutationFn: authApi.login });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: authApi.login,
+    // Replay whatever the visitor collected as a guest into their real
+    // account cart the moment a session exists (see merge-guest-cart.ts).
+    onSuccess: async () => {
+      await mergeGuestCartIntoServer();
+      queryClient.invalidateQueries({ queryKey: queryKeys.cart });
+    },
+  });
 }
 
 export function useRegister() {

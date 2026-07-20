@@ -2,8 +2,12 @@ import { Link } from "@tanstack/react-router";
 import { Search, User, ShoppingCart, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UrithiLogo } from "@/components/kna/logo";
+import { useCart } from "@/hooks/use-cart";
 
 export function SiteHeader() {
+  const { data: cart } = useCart();
+  const itemCount = cart?.item_count ?? 0;
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       <div aria-hidden className="flex h-1 w-full">
@@ -13,7 +17,7 @@ export function SiteHeader() {
       </div>
       <div className="mx-auto flex max-w-7xl items-center gap-6 px-4 py-3 md:px-8 md:py-4">
         <Link to="/" className="flex items-center gap-3 shrink-0" aria-label="Urithi home">
-          <UrithiLogo className="h-72 w-auto sm:h-28" />
+          <UrithiLogo className="h-9 w-auto sm:h-11 md:h-14" />
           <span className="sr-only">Urithi — by Kenya News Agency · Digital Archive</span>
         </Link>
 
@@ -42,9 +46,14 @@ export function SiteHeader() {
               <Search className="h-4 w-4" />
             </Link>
           </Button>
-          <Button variant="ghost" size="icon" asChild aria-label="Cart">
+          <Button variant="ghost" size="icon" asChild aria-label="Cart" className="relative">
             <Link to="/cart">
               <ShoppingCart className="h-4 w-4" />
+              {itemCount > 0 && (
+                <span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-flag-red px-1 text-[0.6rem] font-semibold leading-none text-paper">
+                  {itemCount > 9 ? "9+" : itemCount}
+                </span>
+              )}
             </Link>
           </Button>
           <Button
@@ -76,7 +85,7 @@ export function SiteFooter() {
       <div className="mx-auto max-w-7xl px-4 py-14 md:px-8">
         <div className="grid gap-12 md:grid-cols-4">
           <div>
-            <UrithiLogo className="h-50 w-auto" />
+            <UrithiLogo className="h-10 w-auto sm:h-12 md:h-14" />
             <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
               Urithi is the national photographic and press archive of the Kenya News Agency,
               maintained by the Ministry of Information, Communications and the Digital Economy.

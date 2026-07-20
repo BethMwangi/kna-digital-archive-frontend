@@ -89,9 +89,7 @@ function RegisterPage() {
     <div>
       <p className="eyebrow">Join the archive</p>
       <h1 className="mt-3 font-display text-4xl">Create account</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Individual account · Free to browse, pay per license.
-      </p>
+      {/* <p className="mt-2 text-sm text-muted-foreground">Create an account with us</p> */}
 
       {formError && (
         <Alert variant="destructive" className="mt-6">

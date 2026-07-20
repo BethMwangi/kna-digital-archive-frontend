@@ -1,7 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { toast } from "sonner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { SiteShell } from "@/components/kna/site-shell";
 import { formatKES } from "@/lib/mock-data";
 import { useCart } from "@/hooks/use-cart";
+import { checkout } from "@/lib/api/orders";
+import type { OrderOut } from "@/lib/api/types";
+import { queryKeys } from "@/lib/api/query-keys";
 import { RequireAuth } from "@/lib/auth/protected-route";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,13 +27,21 @@ export const Route = createFileRoute("/checkout")({
 });
 
 function CheckoutPage() {
-  const [done, setDone] = useState(false);
-  const { data: items, isPending } = useCart();
-  const subtotal = (items ?? []).reduce((s, i) => s + i.subtotal, 0);
-  const vat = Math.round(subtotal * 0.16);
-  const total = subtotal + vat;
+  const [order, setOrder] = useState<OrderOut | null>(null);
+  const { data: cart, isPending } = useCart();
+  const items = cart?.items ?? [];
+  const queryClient = useQueryClient();
 
-  if (done) return <SuccessScreen total={total} />;
+  const placeOrder = useMutation({
+    mutationFn: () => checkout(),
+    onSuccess: (created) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.cart });
+      setOrder(created);
+    },
+    onError: () => toast.error("Couldn't complete checkout. Please try again."),
+  });
+
+  if (order) return <SuccessScreen order={order} />;
 
   return (
     <SiteShell>
@@ -48,7 +61,7 @@ function CheckoutPage() {
                     <Skeleton className="h-16 w-full" />
                   </div>
                 ) : (
-                  (items ?? []).map((item) => (
+                  items.map((item) => (
                     <div
                       key={item.id}
                       className="flex items-center gap-4 border-b border-border p-4 last:border-b-0"
@@ -124,18 +137,20 @@ function CheckoutPage() {
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <div className="border border-border bg-paper-warm p-6">
               <p className="eyebrow">Total due</p>
-              <p className="mt-2 font-display text-4xl tabular-nums">{formatKES(total)}</p>
+              <p className="mt-2 font-display text-4xl tabular-nums">
+                {formatKES(cart?.total ?? 0)}
+              </p>
               <dl className="mt-4 space-y-2 text-sm">
-                <Row k="Subtotal" v={formatKES(subtotal)} />
-                <Row k="VAT (16%)" v={formatKES(vat)} />
-                <Row k="Records" v={String((items ?? []).length)} />
+                <Row k="Records" v={String(cart?.item_count ?? items.length)} />
               </dl>
               <Button
                 className="mt-6 w-full rounded-none bg-flag-green text-paper hover:bg-flag-green/90"
                 size="lg"
-                onClick={() => setDone(true)}
+                onClick={() => placeOrder.mutate()}
+                disabled={placeOrder.isPending || items.length === 0}
               >
-                <Lock className="mr-2 h-4 w-4" /> Pay {formatKES(total)}
+                <Lock className="mr-2 h-4 w-4" />
+                {placeOrder.isPending ? "Processing…" : `Pay ${formatKES(cart?.total ?? 0)}`}
               </Button>
               <p className="mt-3 text-center text-xs text-muted-foreground">
                 Secured with TLS 1.3 · PCI DSS compliant
@@ -148,26 +163,24 @@ function CheckoutPage() {
   );
 }
 
-function SuccessScreen({ total }: { total: number }) {
+function SuccessScreen({ order }: { order: OrderOut }) {
   return (
     <SiteShell>
       <div className="mx-auto max-w-2xl px-4 py-24 text-center md:px-8">
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[oklch(0.55_0.14_150)]/10 text-[oklch(0.35_0.14_150)]">
           <Check className="h-6 w-6" />
         </div>
-        <p className="eyebrow mt-6">Payment received</p>
+        <p className="eyebrow mt-6">Order placed</p>
         <h1 className="mt-3 font-display text-4xl md:text-5xl">Thank you.</h1>
         <p className="mt-4 text-muted-foreground">
-          Your order has been recorded and your downloads are ready.
+          Your order has been recorded. Downloads will appear in your account once payment is
+          confirmed.
         </p>
         <div className="mt-8 inline-block border border-border bg-paper-warm px-8 py-6 text-left">
           <p className="eyebrow">Order number</p>
-          <p className="mt-1 font-display text-2xl">Urithi-2024-00913</p>
+          <p className="mt-1 font-display text-2xl">{order.id}</p>
           <p className="mt-3 text-sm text-muted-foreground">
-            Total paid <span className="tabular-nums text-foreground">{formatKES(total)}</span>
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Receipt sent to wanjiku@example.co.ke
+            Total <span className="tabular-nums text-foreground">{formatKES(order.total)}</span>
           </p>
         </div>
         <div className="mt-8 flex flex-wrap justify-center gap-3">

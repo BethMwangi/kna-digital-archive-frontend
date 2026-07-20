@@ -1,8 +1,13 @@
 import { useSyncExternalStore } from "react";
 import { getState, subscribe, type AuthState } from "./token-store";
 
+// Must be a stable reference — useSyncExternalStore re-renders whenever
+// getServerSnapshot returns a value that differs from the last call, and a
+// fresh object literal here differs from itself on every single call.
+const SERVER_SNAPSHOT: AuthState = { status: "idle", accessToken: null, user: null };
+
 function getServerSnapshot(): AuthState {
-  return { status: "idle", accessToken: null, user: null };
+  return SERVER_SNAPSHOT;
 }
 
 /**

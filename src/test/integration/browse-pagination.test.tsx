@@ -9,7 +9,7 @@ import {
   createRouter,
   createMemoryHistory,
 } from "@tanstack/react-router";
-import { BrowsePage } from "@/routes/browse";
+import { BrowsePage } from "@/components/kna/browse-page";
 
 /**
  * BrowsePage renders the full SiteShell (header/footer), so every path its

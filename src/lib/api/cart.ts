@@ -1,5 +1,5 @@
 import { apiClient, toNumber } from "./client";
-import type { CartItemOut } from "./types";
+import type { CartItemOut, CartOut } from "./types";
 
 export interface AddToCartInput {
   asset_id: string;
@@ -15,23 +15,35 @@ function fixCartItem(item: CartItemOut): CartItemOut {
   };
 }
 
-/** POST /cart/ — adds one licensed copy of an asset to the cart. Requires auth. */
-export async function addToCart(input: AddToCartInput): Promise<CartItemOut> {
-  const data = await apiClient.post<CartItemOut>("/cart/", input);
-  return fixCartItem(data);
+function fixCart(cart: CartOut): CartOut {
+  return { ...cart, items: cart.items.map(fixCartItem), total: toNumber(cart.total) };
+}
+
+/** GET /cart/ — items, per-line subtotal, cart total, item_count. Requires auth. */
+export async function getCart(): Promise<CartOut> {
+  const data = await apiClient.get<CartOut>("/cart/");
+  return fixCart(data);
 }
 
 /**
- * GET /cart/ — TODO(api): confirm the exact response shape once this ships;
- * assumed to be a bare array of cart items, matching the list convention
- * used elsewhere in this API (see assets.ts, admin-users.ts).
+ * POST /cart/ — adds one licensed copy of an asset. 409 if that exact
+ * asset+license pair is already in the cart (safe to ignore when replaying
+ * a guest cart on login — see src/lib/cart/merge-guest-cart.ts). Returns the
+ * full updated cart, not just the new line.
  */
-export async function listCart(): Promise<CartItemOut[]> {
-  const data = await apiClient.get<CartItemOut[]>("/cart/");
-  return data.map(fixCartItem);
+export async function addToCart(input: AddToCartInput): Promise<CartOut> {
+  const data = await apiClient.post<CartOut>("/cart/", input);
+  return fixCart(data);
 }
 
-/** DELETE /cart/{id}/ — TODO(api): confirm this path once the endpoint ships. */
-export function removeFromCart(id: string): Promise<void> {
-  return apiClient.delete<void>(`/cart/${id}/`);
+/** DELETE /cart/items/{itemId}/ — removes one line. Returns the updated cart. */
+export async function removeCartItem(itemId: string): Promise<CartOut> {
+  const data = await apiClient.delete<CartOut>(`/cart/items/${itemId}/`);
+  return fixCart(data);
+}
+
+/** POST /cart/clear/ — empties the cart. Returns the updated (empty) cart. */
+export async function clearCart(): Promise<CartOut> {
+  const data = await apiClient.post<CartOut>("/cart/clear/");
+  return fixCart(data);
 }

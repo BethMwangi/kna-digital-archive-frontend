@@ -3,7 +3,6 @@ import { SiteShell } from "@/components/kna/site-shell";
 import { EmptyState } from "@/components/kna/components";
 import { formatKES } from "@/lib/mock-data";
 import { useCart, useRemoveFromCart } from "@/hooks/use-cart";
-import { RequireAuth } from "@/lib/auth/protected-route";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,20 +10,13 @@ import { Trash2, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({ meta: [{ title: "Your cart — Urithi Digital Archive" }] }),
-  component: () => (
-    <RequireAuth>
-      <CartPage />
-    </RequireAuth>
-  ),
+  component: CartPage,
 });
 
 function CartPage() {
-  const { data: items, isPending, isError } = useCart();
+  const { data: cart, isPending, isError } = useCart();
   const removeItem = useRemoveFromCart();
-
-  const subtotal = (items ?? []).reduce((s, i) => s + i.subtotal, 0);
-  const vat = Math.round(subtotal * 0.16);
-  const total = subtotal + vat;
+  const items = cart?.items ?? [];
 
   return (
     <SiteShell>
@@ -45,7 +37,7 @@ function CartPage() {
               description="Something went wrong reaching the server. Try refreshing the page."
             />
           </div>
-        ) : (items ?? []).length === 0 ? (
+        ) : items.length === 0 ? (
           <div className="mt-10">
             <EmptyState
               title="Your cart is empty"
@@ -60,7 +52,7 @@ function CartPage() {
         ) : (
           <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_360px]">
             <div className="border-t border-border">
-              {items!.map((item) => (
+              {items.map((item) => (
                 <div
                   key={item.id}
                   className="grid grid-cols-[96px_1fr_auto] gap-4 border-b border-border py-6 sm:grid-cols-[128px_1fr_auto]"
@@ -104,12 +96,13 @@ function CartPage() {
               <div className="border border-border bg-paper-warm p-6">
                 <p className="eyebrow">Order summary</p>
                 <dl className="mt-4 space-y-2 text-sm">
-                  <Row k="Subtotal" v={formatKES(subtotal)} />
-                  <Row k="VAT (16%)" v={formatKES(vat)} />
+                  <Row k="Records" v={String(cart?.item_count ?? items.length)} />
                 </dl>
                 <div className="mt-4 flex items-baseline justify-between border-t border-border pt-4">
                   <span className="font-display text-lg">Total</span>
-                  <span className="font-display text-2xl tabular-nums">{formatKES(total)}</span>
+                  <span className="font-display text-2xl tabular-nums">
+                    {formatKES(cart?.total ?? 0)}
+                  </span>
                 </div>
                 <Button
                   className="mt-6 w-full rounded-none bg-flag-green text-paper hover:bg-flag-green/90"

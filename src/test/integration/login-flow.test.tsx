@@ -9,8 +9,9 @@ import {
   createRoute,
   createRouter,
   createMemoryHistory,
+  useSearch,
 } from "@tanstack/react-router";
-import { LoginPage } from "@/routes/auth.login";
+import { LoginPage } from "@/components/kna/login-page";
 import * as tokenStore from "@/lib/auth/token-store";
 
 /**
@@ -18,18 +19,23 @@ import * as tokenStore from "@/lib/auth/token-store";
  * with the code-based createRoute API. We can't reuse auth.login.tsx's
  * exported `Route` directly here: createFileRoute's output is meant to be
  * consumed via the codegen'd routeTree.gen.ts, and wiring it into a
- * hand-built tree throws ("Duplicate routes found with id: __root__").
- * `Route.useSearch()` inside LoginPage matches by path id against whatever
- * router is actually mounted, so a same-path createRoute here is enough for
- * the real component to work correctly.
+ * hand-built tree throws ("Duplicate routes found with id: __root__"). So we
+ * mirror auth.login.tsx's own wrapper here: a same-path createRoute reads
+ * the `redirect` search param and passes it into LoginPage as a prop, same
+ * as the real route does.
  */
+function LoginRouteTestWrapper() {
+  const { redirect } = useSearch({ from: "/auth/login" });
+  return <LoginPage redirect={redirect} />;
+}
+
 function renderLoginPage() {
   const rootRoute = createRootRoute();
   const loginRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/auth/login",
     validateSearch: (search) => z.object({ redirect: z.string().optional() }).parse(search),
-    component: LoginPage,
+    component: LoginRouteTestWrapper,
   });
   const accountRoute = createRoute({
     getParentRoute: () => rootRoute,

@@ -13,6 +13,7 @@ import { assets, findAsset, formatKES, licenseInfo } from "@/lib/mock-data";
 import type { Asset, LicenseType } from "@/lib/mock-data";
 import { useAsset, useAssets, useLicenses } from "@/hooks/use-assets";
 import { useAddToCart } from "@/hooks/use-cart";
+import { ApiError } from "@/lib/api/client";
 import type { AssetListItem } from "@/lib/api/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -297,18 +298,32 @@ function RealAssetDetail({ id }: { id: string }) {
   const mainImage = side === "back" && asset.image_back ? asset.image_back : asset.image;
 
   const handleAddToCart = () => {
-    if (!selectedLicenseId) {
+    const selectedLicense = licenses?.find((l) => l.id === selectedLicenseId);
+    if (!selectedLicenseId || !selectedLicense) {
       toast.error("Choose a license first.");
       return;
     }
     addToCart.mutate(
-      { asset_id: asset.id, license_id: selectedLicenseId },
+      {
+        asset_id: asset.id,
+        license_id: selectedLicenseId,
+        title: asset.title,
+        thumbnail: asset.thumbnail,
+        price: asset.price,
+        license_name: selectedLicense.name,
+      },
       {
         onSuccess: () => {
           toast.success("Added to cart.");
           navigate({ to: "/cart" });
         },
-        onError: () => toast.error("Couldn't add this record to your cart. Try again."),
+        onError: (error) => {
+          if (error instanceof ApiError && error.status === 409) {
+            toast.error("This record is already in your cart.");
+            return;
+          }
+          toast.error("Couldn't add this record to your cart. Try again.");
+        },
       },
     );
   };
