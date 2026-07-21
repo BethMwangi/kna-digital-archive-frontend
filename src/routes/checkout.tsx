@@ -66,6 +66,8 @@ function CheckoutPage() {
     city: "",
     postalCode: "",
   }));
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [termsError, setTermsError] = useState(false);
   const { data: cart, isPending } = useCart();
   const items = cart?.items ?? [];
   const queryClient = useQueryClient();
@@ -88,6 +90,11 @@ function CheckoutPage() {
     }
     if (!billing.phone.trim()) {
       toast.error("Please enter a phone number.");
+      return;
+    }
+    if (!agreedToTerms) {
+      setTermsError(true);
+      toast.error("Please agree to the licensing terms to continue.");
       return;
     }
 
@@ -249,14 +256,32 @@ function CheckoutPage() {
                 />
               </div>
 
-              <div className="mt-6 flex items-start gap-3 border border-border bg-paper-warm p-4">
-                <Checkbox id="terms" className="mt-0.5" />
+              <div
+                className={`mt-6 flex items-start gap-3 border bg-paper-warm p-4 ${
+                  termsError && !agreedToTerms ? "border-destructive" : "border-border"
+                }`}
+              >
+                <Checkbox
+                  id="terms"
+                  className="mt-0.5"
+                  checked={agreedToTerms}
+                  onCheckedChange={(checked) => {
+                    setAgreedToTerms(Boolean(checked));
+                    if (checked) setTermsError(false);
+                  }}
+                />
                 <Label htmlFor="terms" className="text-xs leading-relaxed text-muted-foreground">
                   I agree to the Urithi <a className="underline">Licensing Terms</a> and confirm I
                   have read the usage rights for each selected license type. Records are
                   non-transferable and use outside declared license scope is prohibited.
+                  <span className="text-destructive"> *</span>
                 </Label>
               </div>
+              {termsError && !agreedToTerms && (
+                <p className="mt-2 text-xs text-destructive">
+                  You must agree to the licensing terms before paying.
+                </p>
+              )}
             </section>
           </div>
 
