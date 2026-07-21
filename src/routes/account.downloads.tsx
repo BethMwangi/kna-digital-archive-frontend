@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { LicenseBadge, EmptyState } from "@/components/kna/components";
+import { LazyImage, LicenseBadge, EmptyState } from "@/components/kna/components";
 import { useDownloads, useDownloadLink } from "@/hooks/use-downloads";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -74,9 +74,12 @@ function Downloads() {
                 <TableRow key={d.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div className="h-12 w-16 shrink-0 overflow-hidden bg-ink">
-                        <img src={d.thumbnail} alt="" className="bw h-full w-full object-cover" />
-                      </div>
+                      <LazyImage
+                        src={d.thumbnail}
+                        alt=""
+                        containerClassName="h-12 w-16 shrink-0"
+                        className="bw"
+                      />
                       <div className="min-w-0">
                         <p className="line-clamp-1 text-sm font-medium">{d.asset_title}</p>
                         <p className="text-xs text-muted-foreground">{d.order_number}</p>

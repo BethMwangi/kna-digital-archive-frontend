@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { formatKES } from "@/lib/mock-data";
 import { useOrders } from "@/hooks/use-orders";
-import { LicenseBadge, OrderStatusBadge } from "@/components/kna/components";
+import { LazyImage, LicenseBadge, OrderStatusBadge } from "@/components/kna/components";
 import type { OrderStatus } from "@/lib/mock-data";
 import {
   Sheet,
@@ -120,13 +120,12 @@ function OrderHistory() {
                               key={it.id}
                               className="flex gap-3 border-b border-border pb-4 last:border-b-0"
                             >
-                              <div className="h-16 w-20 shrink-0 overflow-hidden bg-ink">
-                                <img
-                                  src={it.asset.thumbnail}
-                                  alt=""
-                                  className="bw h-full w-full object-cover"
-                                />
-                              </div>
+                              <LazyImage
+                                src={it.asset.thumbnail}
+                                alt=""
+                                containerClassName="h-16 w-20 shrink-0"
+                                className="bw"
+                              />
                               <div className="min-w-0 flex-1">
                                 <p className="line-clamp-2 text-sm font-medium">
                                   {it.asset_title_snapshot}

@@ -4,6 +4,7 @@ import { SiteShell } from "@/components/kna/site-shell";
 import {
   AssetCard,
   EmptyState,
+  LazyImage,
   LicenseBadge,
   PreviewImage,
   SectionHeader,
@@ -119,7 +120,7 @@ function MockAssetDetail({ asset }: { asset: Asset }) {
 
           {/* Metadata */}
           <div className="mt-10 border-t border-border pt-8">
-            <p className="eyebrow">Record metadata</p>
+            {/* <p className="eyebrow">Record metadata</p> */}
             <h1 className="mt-2 font-display text-3xl md:text-4xl leading-tight">{asset.title}</h1>
             <p className="mt-4 text-base text-muted-foreground max-w-prose leading-relaxed">
               {asset.description}
@@ -373,11 +374,7 @@ function RealAssetDetail({ id }: { id: string }) {
                     side === "front" ? "ring-2 ring-ink" : "opacity-70 hover:opacity-100"
                   }`}
                 >
-                  <img
-                    src={asset.image}
-                    alt={`${asset.title} — front`}
-                    className="bw h-full w-full object-cover"
-                  />
+                  <LazyImage src={asset.image} alt={`${asset.title} — front`} className="bw" />
                 </button>
                 <button
                   type="button"
@@ -386,10 +383,10 @@ function RealAssetDetail({ id }: { id: string }) {
                     side === "back" ? "ring-2 ring-ink" : "opacity-70 hover:opacity-100"
                   }`}
                 >
-                  <img
+                  <LazyImage
                     src={asset.image_back!}
                     alt={`${asset.title} — back`}
-                    className="bw h-full w-full object-cover"
+                    className="bw"
                   />
                 </button>
               </div>

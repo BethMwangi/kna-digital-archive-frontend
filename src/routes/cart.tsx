@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteShell } from "@/components/kna/site-shell";
-import { EmptyState } from "@/components/kna/components";
+import { EmptyState, LazyImage } from "@/components/kna/components";
 import { formatKES } from "@/lib/mock-data";
 import { useCart, useRemoveFromCart } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
@@ -62,11 +62,7 @@ function CartPage() {
                     params={{ slug: item.asset.id }}
                     className="block overflow-hidden bg-ink aspect-square"
                   >
-                    <img
-                      src={item.asset.thumbnail}
-                      alt={item.asset.title}
-                      className="bw h-full w-full object-cover"
-                    />
+                    <LazyImage src={item.asset.thumbnail} alt={item.asset.title} className="bw" />
                   </Link>
                   <div className="min-w-0">
                     <Link

@@ -242,24 +242,25 @@ export interface DownloadLinkOut {
 }
 
 /**
- * GET /assets/search/ — raw DRF payload, no {success,message,data} envelope
- * (unlike every other endpoint in this API — see assets.ts's searchAssets).
+ * GET /assets/search/ — enveloped like every other endpoint; `data` carries
+ * the DRF pagination fields plus `query`/`match_type`. `match_type` says which
+ * engine answered: "meilisearch" (primary), "text"/"fuzzy" (Postgres fallback
+ * + typo-correction), or "none" (empty query).
  */
 export interface AssetSearchOut {
   count: number;
   next: string | null;
   previous: string | null;
   results: AssetListItem[];
-  match_type: "text" | "fuzzy" | "none";
+  match_type: "meilisearch" | "text" | "fuzzy" | "none";
   query: string;
 }
 
-/**
- * GET /assets/suggest/ — top 8, minimal payload for the live dropdown.
- * Fields beyond id/title/thumbnail aren't confirmed yet.
- */
+/** GET /assets/suggest/ — top 8, minimal payload for the live dropdown. */
 export interface AssetSuggestionOut {
   id: string;
+  asset_number: string;
   title: string;
   thumbnail: string;
+  price: number;
 }

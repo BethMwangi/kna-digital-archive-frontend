@@ -61,6 +61,10 @@ export function BrowsePage() {
   });
 
   const { data, isPending, isError, isFetching } = hasQ ? searchQuery : assetsQuery;
+  // "fuzzy" means the literal query matched nothing and this is a
+  // typo-corrected best guess — worth telling the user why results differ
+  // from what they typed.
+  const fuzzyMatch = hasQ && searchQuery.data?.match_type === "fuzzy";
 
   const { data: categoriesData } = useCategories();
   const { data: collectionsData } = useCollections();
@@ -129,7 +133,7 @@ export function BrowsePage() {
               {collectionsData?.slice(0, 6).map((c) => (
                 <FilterCheck
                   key={c.id}
-                  label={c.title || c.name}
+                  label={c.name}
                   count={c.count}
                   checked={collectionParam === c.id}
                   onCheckedChange={(checked) => {
@@ -146,13 +150,13 @@ export function BrowsePage() {
             </div>
           </FilterGroup>
 
-          <FilterGroup title="Asset type">
+          {/* <FilterGroup title="Asset type">
             <div className="space-y-2">
               {assetTypes.map((t) => (
                 <FilterCheck key={t} label={t} />
               ))}
             </div>
-          </FilterGroup>
+          </FilterGroup> */}
 
           <FilterGroup title="Date range">
             <div className="grid grid-cols-2 gap-2">
@@ -161,13 +165,13 @@ export function BrowsePage() {
             </div>
           </FilterGroup>
 
-          <FilterGroup title="Photographer">
+          {/* <FilterGroup title="Photographer">
             <div className="space-y-2">
               {photographers.map((p) => (
                 <FilterCheck key={p} label={p} />
               ))}
             </div>
-          </FilterGroup>
+          </FilterGroup> */}
 
           <FilterGroup title="County">
             <div className="space-y-2">
@@ -193,6 +197,14 @@ export function BrowsePage() {
 
         {/* Results */}
         <section ref={resultsRef}>
+          {fuzzyMatch && (
+            <p className="mb-4 text-sm text-muted-foreground">
+              No exact match for <span className="font-medium text-foreground">"{q}"</span> —
+              showing results for{" "}
+              <span className="font-medium text-foreground">"{searchQuery.data?.query}"</span>{" "}
+              instead.
+            </p>
+          )}
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <span className="font-medium text-foreground">{total.toLocaleString()}</span> records

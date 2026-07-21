@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import type { LicenseType, OrderStatus } from "@/lib/mock-data";
 import { formatKES } from "@/lib/mock-data";
-import { Search, X, ZoomIn } from "lucide-react";
+import { Search, X, ZoomIn, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useAssetSuggestions } from "@/hooks/use-assets";
 
 /* ---------- Archival preview image ---------- */
 /** Real images (and slow connections) can take a couple of seconds — show a
@@ -61,6 +62,40 @@ export function PreviewImage({
           </Dialog>
         </>
       )}
+    </div>
+  );
+}
+
+/* ---------- LazyImage ---------- */
+/** Lightweight version of PreviewImage for small/incidental thumbnails
+ *  (cart lines, order history, collection covers) — same skeleton-until-
+ *  loaded treatment, no zoom button. */
+export function LazyImage({
+  src,
+  alt,
+  className,
+  containerClassName,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  containerClassName?: string;
+}) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className={cn("relative overflow-hidden bg-ink", containerClassName)}>
+      {!loaded && <Skeleton className="absolute inset-0" />}
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        onLoad={() => setLoaded(true)}
+        className={cn(
+          "h-full w-full object-cover transition-opacity duration-500",
+          loaded ? "opacity-100" : "opacity-0",
+          className,
+        )}
+      />
     </div>
   );
 }
@@ -163,11 +198,11 @@ export interface CollectionCardData {
 export function CollectionCard({ collection }: { collection: CollectionCardData }) {
   return (
     <Link to="/browse" className="group relative block overflow-hidden aspect-[4/5]">
-      <img
+      <LazyImage
         src={collection.cover}
         alt={collection.title}
-        loading="lazy"
-        className="bw h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-105"
+        containerClassName="absolute inset-0"
+        className="bw transition-transform duration-[900ms] ease-out group-hover:scale-105"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/40 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 p-5 text-paper">
@@ -222,8 +257,34 @@ export function SearchBar({
   placeholder?: string;
 }) {
   const navigate = useNavigate();
+  const [value, setValue] = useState(defaultValue ?? "");
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Keep the field in sync when the query changes from elsewhere (e.g. a
+  // filter is cleared on /browse) — but not on every render, or a user's
+  // in-progress typing would get clobbered by a stale prop.
+  useEffect(() => {
+    setValue(defaultValue ?? "");
+  }, [defaultValue]);
+
+  // Live dropdown — debounced + gated to a minimum query length inside the
+  // hook itself, so this component just reacts to whatever comes back.
+  const { data: suggestions, isFetching: suggesting } = useAssetSuggestions(value);
+  const showDropdown = open && value.trim().length >= 3;
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleSearch = (q: string) => {
+    setOpen(false);
     if (q) {
       navigate({ to: "/browse", search: { q } });
     } else {
@@ -231,10 +292,18 @@ export function SearchBar({
     }
   };
 
+  const handleSelectSuggestion = (id: string) => {
+    setOpen(false);
+    navigate({ to: "/asset/$slug", params: { slug: id } });
+  };
+
   return (
-    <div className="w-full">
+    <div className="relative w-full" ref={containerRef}>
       <form
-        onSubmit={(e) => e.preventDefault()}
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSearch(value);
+        }}
         className={cn(
           "flex w-full items-center gap-2 border border-border bg-background",
           size === "lg" ? "p-2" : "p-1.5",
@@ -245,16 +314,60 @@ export function SearchBar({
         />
         <Input
           name="q"
-          defaultValue={defaultValue}
+          value={value}
           placeholder={placeholder}
-          onChange={(e) => handleSearch(e.target.value)}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setOpen(false);
+          }}
+          autoComplete="off"
           className={cn(
             "border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0",
             size === "lg" ? "h-12 text-base" : "h-9 text-sm",
           )}
         />
+        {showDropdown && suggesting && (
+          <Loader2 className="mr-1 h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+        )}
         {action}
       </form>
+
+      {showDropdown && (
+        <div className="absolute inset-x-0 top-full z-30 mt-1 max-h-96 overflow-y-auto border border-border bg-background shadow-lg">
+          {suggesting && !suggestions?.length ? (
+            <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Searching…
+            </div>
+          ) : suggestions && suggestions.length > 0 ? (
+            suggestions.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => handleSelectSuggestion(s.id)}
+                className="flex w-full items-center gap-3 border-b border-border p-2.5 text-left last:border-b-0 hover:bg-paper-warm"
+              >
+                <LazyImage
+                  src={s.thumbnail}
+                  alt={s.title}
+                  containerClassName="h-10 w-14 shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm">{s.title}</p>
+                  <p className="text-xs text-muted-foreground">{s.asset_number}</p>
+                </div>
+                <p className="shrink-0 text-xs font-medium tabular-nums">{formatKES(s.price)}</p>
+              </button>
+            ))
+          ) : (
+            <div className="p-4 text-sm text-muted-foreground">No matches for "{value}"</div>
+          )}
+        </div>
+      )}
+
       {chips.length > 0 && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {chips.map((c) => (

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { SiteShell } from "@/components/kna/site-shell";
+import { LazyImage } from "@/components/kna/components";
 import { formatKES } from "@/lib/mock-data";
 import { useCart } from "@/hooks/use-cart";
 import { useInitiatePayment, useSimulatePayment } from "@/hooks/use-payments";
@@ -162,13 +163,12 @@ function CheckoutPage() {
                       key={item.id}
                       className="flex items-center gap-4 border-b border-border p-4 last:border-b-0"
                     >
-                      <div className="h-16 w-20 shrink-0 overflow-hidden bg-ink">
-                        <img
-                          src={item.asset.thumbnail}
-                          alt=""
-                          className="bw h-full w-full object-cover"
-                        />
-                      </div>
+                      <LazyImage
+                        src={item.asset.thumbnail}
+                        alt=""
+                        containerClassName="h-16 w-20 shrink-0"
+                        className="bw"
+                      />
                       <div className="min-w-0 flex-1">
                         <p className="line-clamp-1 text-sm font-medium">{item.asset.title}</p>
                         <div className="mt-1 flex items-center gap-2">

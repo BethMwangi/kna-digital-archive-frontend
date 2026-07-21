@@ -114,7 +114,12 @@ export function SiteFooter() {
           />
           <FooterCol
             title="Licensing"
-            links={["How it works", "License types", "Pricing", "Terms of use"]}
+            links={[
+              { label: "How it works", to: "/how-it-works" },
+              { label: "License types", to: "/licensing" },
+              "Pricing",
+              "Terms of use",
+            ]}
           />
           <FooterCol
             title="Institution"
@@ -136,18 +141,29 @@ export function SiteFooter() {
   );
 }
 
-function FooterCol({ title, links }: { title: string; links: string[] }) {
+type FooterLink = string | { label: string; to: string };
+
+function FooterCol({ title, links }: { title: string; links: FooterLink[] }) {
   return (
     <div>
       <p className="eyebrow">{title}</p>
       <ul className="mt-4 space-y-2 text-sm">
-        {links.map((l) => (
-          <li key={l}>
-            <a href="#" className="text-foreground/80 hover:text-foreground">
-              {l}
-            </a>
-          </li>
-        ))}
+        {links.map((l) => {
+          const label = typeof l === "string" ? l : l.label;
+          return (
+            <li key={label}>
+              {typeof l === "string" ? (
+                <a href="#" className="text-foreground/80 hover:text-foreground">
+                  {label}
+                </a>
+              ) : (
+                <Link to={l.to as never} className="text-foreground/80 hover:text-foreground">
+                  {label}
+                </Link>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

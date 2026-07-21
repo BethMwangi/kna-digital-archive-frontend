@@ -100,7 +100,7 @@ function AdminAssets() {
               </TableHead>
               <TableHead>Record</TableHead>
               <TableHead>Category</TableHead>
-              <TableHead>Photographer</TableHead>
+              {/* <TableHead>Photographer</TableHead> */}
               <TableHead>Year</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">From</TableHead>
@@ -127,7 +127,7 @@ function AdminAssets() {
                     </div>
                   </TableCell>
                   <TableCell className="text-sm">{a.category}</TableCell>
-                  <TableCell className="text-sm">{a.photographer}</TableCell>
+                  {/* <TableCell className="text-sm">{a.photographer}</TableCell> */}
                   <TableCell className="text-sm tabular-nums">{a.year}</TableCell>
                   <TableCell>
                     <Badge
@@ -226,10 +226,10 @@ function UploadDialog() {
               <Label>Caption</Label>
               <Textarea className="mt-1.5" rows={2} />
             </div>
-            <div>
+            {/* <div>
               <Label>Photographer</Label>
               <Input className="mt-1.5" />
-            </div>
+            </div> */}
             <div>
               <Label>Date</Label>
               <Input type="date" className="mt-1.5" />

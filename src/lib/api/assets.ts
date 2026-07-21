@@ -140,24 +140,27 @@ export function listTags(): Promise<TagOut[]> {
 }
 
 /**
- * GET /assets/search/ — ranked full-text with typo fallback. Unlike every
- * other endpoint here, the response has no {success,message,data} envelope —
- * `match_type`/`query` sit at the top level alongside the DRF pagination
- * fields, so this must be unwrap:false.
+ * GET /assets/search/ — ranked full-text (Meilisearch primary, Postgres
+ * exact/fuzzy fallback). Enveloped like every other endpoint; `match_type`/
+ * `query` sit alongside the DRF pagination fields inside `data`.
  */
 export async function searchAssets(params: AssetSearchParams): Promise<AssetSearchOut> {
   const data = await apiClient.get<AssetSearchOut>(`/assets/search/${qs(params)}`, {
     skipAuth: true,
-    unwrap: false,
   });
   return { ...data, results: data.results.map(fixListItem) };
 }
 
-/** GET /assets/suggest/ — top 8, minimal payload for a live dropdown. Debounce ~150–250ms on keystroke. */
+/** GET /assets/suggest/ — top 8, minimal payload for a live dropdown. Debounce on keystroke. */
 export async function suggestAssets(q: string): Promise<AssetSuggestionOut[]> {
   if (!q) return [];
-  const data = await apiClient.get<AssetSuggestionOut[]>(`/assets/suggest/${qs({ q })}`, {
-    skipAuth: true,
-  });
-  return data.map((item) => ({ ...item, thumbnail: fixMediaUrl(item.thumbnail) }));
+  const data = await apiClient.get<{ results: AssetSuggestionOut[] }>(
+    `/assets/suggest/${qs({ q })}`,
+    { skipAuth: true },
+  );
+  return data.results.map((item) => ({
+    ...item,
+    thumbnail: fixMediaUrl(item.thumbnail),
+    price: toNumber(item.price),
+  }));
 }

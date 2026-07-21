@@ -9,6 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LicensingRouteImport } from './routes/licensing'
+import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as BrowseRouteImport } from './routes/browse'
@@ -36,6 +38,16 @@ import { Route as AccountProfileRouteImport } from './routes/account.profile'
 import { Route as AccountOrdersRouteImport } from './routes/account.orders'
 import { Route as AccountDownloadsRouteImport } from './routes/account.downloads'
 
+const LicensingRoute = LicensingRouteImport.update({
+  id: '/licensing',
+  path: '/licensing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HowItWorksRoute = HowItWorksRouteImport.update({
+  id: '/how-it-works',
+  path: '/how-it-works',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CheckoutRoute = CheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
@@ -175,6 +187,8 @@ export interface FileRoutesByFullPath {
   '/browse': typeof BrowseRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
+  '/how-it-works': typeof HowItWorksRoute
+  '/licensing': typeof LicensingRoute
   '/account/downloads': typeof AccountDownloadsRoute
   '/account/orders': typeof AccountOrdersRoute
   '/account/profile': typeof AccountProfileRoute
@@ -201,6 +215,8 @@ export interface FileRoutesByTo {
   '/browse': typeof BrowseRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
+  '/how-it-works': typeof HowItWorksRoute
+  '/licensing': typeof LicensingRoute
   '/account/downloads': typeof AccountDownloadsRoute
   '/account/orders': typeof AccountOrdersRoute
   '/account/profile': typeof AccountProfileRoute
@@ -230,6 +246,8 @@ export interface FileRoutesById {
   '/browse': typeof BrowseRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
+  '/how-it-works': typeof HowItWorksRoute
+  '/licensing': typeof LicensingRoute
   '/account/downloads': typeof AccountDownloadsRoute
   '/account/orders': typeof AccountOrdersRoute
   '/account/profile': typeof AccountProfileRoute
@@ -260,6 +278,8 @@ export interface FileRouteTypes {
     | '/browse'
     | '/cart'
     | '/checkout'
+    | '/how-it-works'
+    | '/licensing'
     | '/account/downloads'
     | '/account/orders'
     | '/account/profile'
@@ -286,6 +306,8 @@ export interface FileRouteTypes {
     | '/browse'
     | '/cart'
     | '/checkout'
+    | '/how-it-works'
+    | '/licensing'
     | '/account/downloads'
     | '/account/orders'
     | '/account/profile'
@@ -314,6 +336,8 @@ export interface FileRouteTypes {
     | '/browse'
     | '/cart'
     | '/checkout'
+    | '/how-it-works'
+    | '/licensing'
     | '/account/downloads'
     | '/account/orders'
     | '/account/profile'
@@ -343,11 +367,27 @@ export interface RootRouteChildren {
   BrowseRoute: typeof BrowseRoute
   CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRoute
+  HowItWorksRoute: typeof HowItWorksRoute
+  LicensingRoute: typeof LicensingRoute
   AssetSlugRoute: typeof AssetSlugRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/licensing': {
+      id: '/licensing'
+      path: '/licensing'
+      fullPath: '/licensing'
+      preLoaderRoute: typeof LicensingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-it-works': {
+      id: '/how-it-works'
+      path: '/how-it-works'
+      fullPath: '/how-it-works'
+      preLoaderRoute: typeof HowItWorksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/checkout': {
       id: '/checkout'
       path: '/checkout'
@@ -602,6 +642,8 @@ const rootRouteChildren: RootRouteChildren = {
   BrowseRoute: BrowseRoute,
   CartRoute: CartRoute,
   CheckoutRoute: CheckoutRoute,
+  HowItWorksRoute: HowItWorksRoute,
+  LicensingRoute: LicensingRoute,
   AssetSlugRoute: AssetSlugRoute,
 }
 export const routeTree = rootRouteImport

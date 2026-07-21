@@ -17,7 +17,10 @@ import { listLicenses } from "@/lib/api/licenses";
 import { queryKeys } from "@/lib/api/query-keys";
 
 const FIVE_MIN = 5 * 60 * 1000;
-const SUGGEST_DEBOUNCE_MS = 200;
+const SUGGEST_DEBOUNCE_MS = 300;
+// Below this, every keystroke would fire a request for a near-meaningless
+// 1-2 letter query — wait for a query specific enough to be useful.
+const MIN_SUGGEST_LENGTH = 3;
 
 /** Paginated, filterable browse query. keepPreviousData stops the grid
  *  flashing empty while a new page/filter loads. */
@@ -97,7 +100,7 @@ export function useAssetSuggestions(q: string) {
   return useQuery({
     queryKey: queryKeys.assets.suggest(debouncedQ),
     queryFn: () => suggestAssets(debouncedQ),
-    enabled: debouncedQ.trim().length > 0,
+    enabled: debouncedQ.trim().length >= MIN_SUGGEST_LENGTH,
     placeholderData: keepPreviousData,
   });
 }
