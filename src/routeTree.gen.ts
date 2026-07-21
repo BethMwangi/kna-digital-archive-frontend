@@ -9,6 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LicensingRouteImport } from './routes/licensing'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as CheckoutRouteImport } from './routes/checkout'
@@ -38,6 +40,16 @@ import { Route as AccountProfileRouteImport } from './routes/account.profile'
 import { Route as AccountOrdersRouteImport } from './routes/account.orders'
 import { Route as AccountDownloadsRouteImport } from './routes/account.downloads'
 
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LicensingRoute = LicensingRouteImport.update({
   id: '/licensing',
   path: '/licensing',
@@ -189,6 +201,8 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/how-it-works': typeof HowItWorksRoute
   '/licensing': typeof LicensingRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/account/downloads': typeof AccountDownloadsRoute
   '/account/orders': typeof AccountOrdersRoute
   '/account/profile': typeof AccountProfileRoute
@@ -217,6 +231,8 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/how-it-works': typeof HowItWorksRoute
   '/licensing': typeof LicensingRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/account/downloads': typeof AccountDownloadsRoute
   '/account/orders': typeof AccountOrdersRoute
   '/account/profile': typeof AccountProfileRoute
@@ -248,6 +264,8 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/how-it-works': typeof HowItWorksRoute
   '/licensing': typeof LicensingRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/account/downloads': typeof AccountDownloadsRoute
   '/account/orders': typeof AccountOrdersRoute
   '/account/profile': typeof AccountProfileRoute
@@ -280,6 +298,8 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/how-it-works'
     | '/licensing'
+    | '/reset-password'
+    | '/verify-email'
     | '/account/downloads'
     | '/account/orders'
     | '/account/profile'
@@ -308,6 +328,8 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/how-it-works'
     | '/licensing'
+    | '/reset-password'
+    | '/verify-email'
     | '/account/downloads'
     | '/account/orders'
     | '/account/profile'
@@ -338,6 +360,8 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/how-it-works'
     | '/licensing'
+    | '/reset-password'
+    | '/verify-email'
     | '/account/downloads'
     | '/account/orders'
     | '/account/profile'
@@ -369,11 +393,27 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   HowItWorksRoute: typeof HowItWorksRoute
   LicensingRoute: typeof LicensingRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  VerifyEmailRoute: typeof VerifyEmailRoute
   AssetSlugRoute: typeof AssetSlugRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/licensing': {
       id: '/licensing'
       path: '/licensing'
@@ -644,6 +684,8 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   HowItWorksRoute: HowItWorksRoute,
   LicensingRoute: LicensingRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  VerifyEmailRoute: VerifyEmailRoute,
   AssetSlugRoute: AssetSlugRoute,
 }
 export const routeTree = rootRouteImport

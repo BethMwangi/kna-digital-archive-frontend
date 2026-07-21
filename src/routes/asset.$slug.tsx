@@ -383,11 +383,7 @@ function RealAssetDetail({ id }: { id: string }) {
                     side === "back" ? "ring-2 ring-ink" : "opacity-70 hover:opacity-100"
                   }`}
                 >
-                  <LazyImage
-                    src={asset.image_back!}
-                    alt={`${asset.title} — back`}
-                    className="bw"
-                  />
+                  <LazyImage src={asset.image_back!} alt={`${asset.title} — back`} className="bw" />
                 </button>
               </div>
             </div>
