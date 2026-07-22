@@ -7,23 +7,30 @@ import type {
   AssetSuggestionOut,
   CategoryOut,
   CollectionOut,
+  CountyOut,
+  PhotographerOut,
   Paginated,
   TagOut,
 } from "./types";
 
 /**
  * Filters map 1:1 to DigitalAssetViewSet's backends:
- * DjangoFilterBackend (category/collection/asset_type by UUID),
+ * DjangoFilterBackend (category/collection/asset_type/county/photographer),
  * SearchFilter (?search=), OrderingFilter (?ordering=). date_from/date_to/year
  * are the same date filters the search endpoint uses, also honored here for
- * plain browse/category pages.
+ * plain browse/category pages. category/collection/asset_type/county/
+ * photographer all accept a comma-separated list of values for an OR match
+ * within that filter (e.g. `county=Kiambu,Nairobi`); combining different
+ * filter params still ANDs across them.
  */
 export interface AssetListParams {
   page?: number;
   search?: string;
-  category?: string; // Category UUID
-  collection?: string; // Collection UUID
-  asset_type?: string; // "photograph" | "newspaper" | ...
+  category?: string; // Category UUID, comma-separated for multiple
+  collection?: string; // Collection UUID, comma-separated for multiple
+  asset_type?: string; // "photograph" | "newspaper" | ... , comma-separated
+  county?: string; // comma-separated for multiple
+  photographer?: string; // comma-separated for multiple
   ordering?: "publication_date" | "-publication_date" | "created_at" | "-created_at";
   date_from?: string;
   date_to?: string;
@@ -36,6 +43,8 @@ export interface AssetSearchParams {
   category?: string;
   collection?: string;
   asset_type?: string;
+  county?: string;
+  photographer?: string;
   date_from?: string;
   date_to?: string;
   year?: number;
@@ -137,6 +146,16 @@ export function listCollections(): Promise<CollectionOut[]> {
 /** GET /tags/ */
 export function listTags(): Promise<TagOut[]> {
   return listAllPaginated<TagOut>("/tags/");
+}
+
+/** GET /assets/counties/ — distinct county values in use, sorted by count desc. Plain array, not paginated. */
+export function listCounties(): Promise<CountyOut[]> {
+  return apiClient.get<CountyOut[]>("/assets/counties/", { skipAuth: true });
+}
+
+/** GET /assets/photographers/ — distinct photographer values in use, sorted by count desc. Plain array, not paginated. */
+export function listPhotographers(): Promise<PhotographerOut[]> {
+  return apiClient.get<PhotographerOut[]>("/assets/photographers/", { skipAuth: true });
 }
 
 /**

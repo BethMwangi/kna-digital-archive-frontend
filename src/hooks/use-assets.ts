@@ -5,8 +5,10 @@ import {
   listAssets,
   listCategories,
   listCollections,
+  listCounties,
   listFeaturedAssets,
   listLatestAssets,
+  listPhotographers,
   listTags,
   searchAssets,
   suggestAssets,
@@ -67,6 +69,22 @@ export function useCollections() {
 
 export function useTags() {
   return useQuery({ queryKey: queryKeys.taxonomy.tags, queryFn: listTags, staleTime: FIVE_MIN });
+}
+
+export function useCounties() {
+  return useQuery({
+    queryKey: queryKeys.taxonomy.counties,
+    queryFn: listCounties,
+    staleTime: FIVE_MIN,
+  });
+}
+
+export function usePhotographers() {
+  return useQuery({
+    queryKey: queryKeys.taxonomy.photographers,
+    queryFn: listPhotographers,
+    staleTime: FIVE_MIN,
+  });
 }
 
 // The 4 license types rarely change — cache it for the session.

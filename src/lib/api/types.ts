@@ -94,6 +94,18 @@ export interface TagOut {
   slug: string;
 }
 
+/** GET /assets/counties/ — distinct county values in use, sorted by count desc. */
+export interface CountyOut {
+  name: string;
+  count: number;
+}
+
+/** GET /assets/photographers/ — distinct photographer values in use, sorted by count desc. */
+export interface PhotographerOut {
+  name: string;
+  count: number;
+}
+
 export interface AssetMetadataOut {
   keywords: string;
   location: string;

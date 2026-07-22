@@ -17,6 +17,8 @@ export const queryKeys = {
     collections: ["collections"] as const,
     tags: ["tags"] as const,
     licenses: ["licenses"] as const,
+    counties: ["counties"] as const,
+    photographers: ["photographers"] as const,
   },
   cart: ["cart"] as const,
   payments: {

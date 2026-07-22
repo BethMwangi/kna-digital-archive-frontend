@@ -1,11 +1,17 @@
 import { useSearch, useNavigate } from "@tanstack/react-router";
 import { SiteShell } from "@/components/kna/site-shell";
 import { AssetCard, EmptyState, SearchBar, type AssetCardData } from "@/components/kna/components";
-import { useAssets, useAssetSearch, useCategories, useCollections } from "@/hooks/use-assets";
+import {
+  useAssets,
+  useAssetSearch,
+  useCategories,
+  useCollections,
+  useCounties,
+  usePhotographers,
+} from "@/hooks/use-assets";
 import type { AssetListItem } from "@/lib/api/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -23,12 +29,44 @@ import {
 } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 
-const assetTypes = ["Photograph", "Video", "Audio", "PDF", "Newspaper", "Document"];
-const counties = ["Nairobi", "Mombasa", "Kisumu", "Nakuru", "Kiambu", "Narok", "Muranga"];
-const photographers = ["Mohamed Amin", "Duncan Willetts", "Priya Ramrakha", "David Mutua"];
+const ASSET_TYPE_OPTIONS = [
+  { value: "photograph", label: "Photograph" },
+  { value: "video", label: "Video" },
+  { value: "audio", label: "Audio" },
+  { value: "pdf", label: "PDF" },
+  { value: "newspaper", label: "Newspaper" },
+  { value: "document", label: "Document" },
+];
 const PAGE_SIZE = 20; // matches the backend's DEFAULT_PAGE_SIZE
+const MIN_YEAR = 1900;
+const CURRENT_YEAR = new Date().getFullYear();
+// Descending — recent decades get filtered far more often than the 1900s.
+const YEAR_OPTIONS = Array.from(
+  { length: CURRENT_YEAR - MIN_YEAR + 1 },
+  (_, i) => CURRENT_YEAR - i,
+);
+
+// Filter params are stored on the URL as a single comma-joined string per
+// key (e.g. `?county=Kiambu,Nairobi`) — this is the exact wire format the
+// backend's OR-within-a-filter matching expects, so no translation is needed
+// between the URL and the API call. These two helpers just manage the
+// checkbox-list <-> comma-string conversion for the UI layer.
+function parseList(value?: string): string[] {
+  return value ? value.split(",").filter(Boolean) : [];
+}
+function toggleListValue(
+  current: string | undefined,
+  value: string,
+  checked: boolean,
+): string | undefined {
+  const list = parseList(current);
+  const next = checked ? [...list, value] : list.filter((v) => v !== value);
+  return next.length ? next.join(",") : undefined;
+}
+
+type MultiFilterKey = "category" | "collection" | "asset_type" | "county" | "photographer";
 
 // Backend has no slug field yet — route by id (see src/lib/api/assets.ts).
 function toCard(a: AssetListItem): AssetCardData {
@@ -48,17 +86,19 @@ export function BrowsePage() {
 
   const page = search.page || 1;
   const q = search.q;
-  const categoryParam = search.category;
-  const collectionParam = search.collection;
 
   const hasQ = Boolean(q);
-  const assetsQuery = useAssets({ page, category: categoryParam, collection: collectionParam });
-  const searchQuery = useAssetSearch({
-    page,
-    q: q || "",
-    category: categoryParam,
-    collection: collectionParam,
-  });
+  const filterParams = {
+    category: search.category,
+    collection: search.collection,
+    asset_type: search.asset_type,
+    county: search.county,
+    photographer: search.photographer,
+    date_from: search.date_from,
+    date_to: search.date_to,
+  };
+  const assetsQuery = useAssets({ page, ...filterParams });
+  const searchQuery = useAssetSearch({ page, q: q || "", ...filterParams });
 
   const { data, isPending, isError, isFetching } = hasQ ? searchQuery : assetsQuery;
   // "fuzzy" means the literal query matched nothing and this is a
@@ -68,6 +108,17 @@ export function BrowsePage() {
 
   const { data: categoriesData } = useCategories();
   const { data: collectionsData } = useCollections();
+  const { data: countiesData } = useCounties();
+  const { data: photographersData } = usePhotographers();
+
+  const categoryParams = parseList(search.category);
+  const collectionParams = parseList(search.collection);
+  const assetTypeParams = parseList(search.asset_type);
+  const countyParams = parseList(search.county);
+  const photographerParams = parseList(search.photographer);
+
+  const fromYear = search.date_from ? Number(search.date_from.slice(0, 4)) : undefined;
+  const toYear = search.date_to ? Number(search.date_to.slice(0, 4)) : undefined;
 
   const results = data?.results ?? [];
   const total = data?.count ?? 0;
@@ -82,6 +133,29 @@ export function BrowsePage() {
   function goToPage(next: number) {
     navigate({ search: (prev) => ({ ...prev, page: next }) });
     resultsRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  }
+
+  // Every filter param is comma-joined on the URL and OR's within itself;
+  // different filter keys still AND together (handled server-side).
+  function toggleFilter(key: MultiFilterKey, value: string, checked: boolean) {
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        [key]: toggleListValue(prev[key], value, checked),
+        page: 1,
+      }),
+    });
+  }
+
+  function setYearRange(nextFrom: number | undefined, nextTo: number | undefined) {
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        date_from: nextFrom ? `${nextFrom}-01-01` : undefined,
+        date_to: nextTo ? `${nextTo}-12-31` : undefined,
+        page: 1,
+      }),
+    });
   }
 
   return (
@@ -102,10 +176,6 @@ export function BrowsePage() {
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-10 md:px-8 lg:grid-cols-[280px_1fr]">
         {/* Filters */}
         <aside className="space-y-8">
-          <FilterGroup title="Keyword">
-            <SearchBar defaultValue={q} />
-          </FilterGroup>
-
           <FilterGroup title="Category">
             <div className="space-y-2">
               {categoriesData?.slice(0, 6).map((c) => (
@@ -113,16 +183,8 @@ export function BrowsePage() {
                   key={c.id}
                   label={c.name}
                   count={c.count}
-                  checked={categoryParam === c.id}
-                  onCheckedChange={(checked) => {
-                    navigate({
-                      search: (prev) => ({
-                        ...prev,
-                        category: checked ? c.id : undefined,
-                        page: 1,
-                      }),
-                    });
-                  }}
+                  checked={categoryParams.includes(c.id)}
+                  onCheckedChange={(checked) => toggleFilter("category", c.id, checked)}
                 />
               ))}
             </div>
@@ -135,48 +197,95 @@ export function BrowsePage() {
                   key={c.id}
                   label={c.name}
                   count={c.count}
-                  checked={collectionParam === c.id}
-                  onCheckedChange={(checked) => {
-                    navigate({
-                      search: (prev) => ({
-                        ...prev,
-                        collection: checked ? c.id : undefined,
-                        page: 1,
-                      }),
-                    });
-                  }}
+                  checked={collectionParams.includes(c.id)}
+                  onCheckedChange={(checked) => toggleFilter("collection", c.id, checked)}
                 />
               ))}
             </div>
           </FilterGroup>
 
-          {/* <FilterGroup title="Asset type">
+          <FilterGroup title="Asset type">
             <div className="space-y-2">
-              {assetTypes.map((t) => (
-                <FilterCheck key={t} label={t} />
+              {ASSET_TYPE_OPTIONS.map((t) => (
+                <FilterCheck
+                  key={t.value}
+                  label={t.label}
+                  checked={assetTypeParams.includes(t.value)}
+                  onCheckedChange={(checked) => toggleFilter("asset_type", t.value, checked)}
+                />
               ))}
-            </div>
-          </FilterGroup> */}
-
-          <FilterGroup title="Date range">
-            <div className="grid grid-cols-2 gap-2">
-              <Input type="number" placeholder="From" defaultValue="1963" />
-              <Input type="number" placeholder="To" defaultValue="2024" />
             </div>
           </FilterGroup>
 
-          {/* <FilterGroup title="Photographer">
+          <FilterGroup title="Year">
+            <div className="grid grid-cols-2 gap-2">
+              <Select
+                value={fromYear ? String(fromYear) : "any"}
+                onValueChange={(v) => setYearRange(v === "any" ? undefined : Number(v), toYear)}
+              >
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="From" />
+                </SelectTrigger>
+                <SelectContent className="max-h-64">
+                  <SelectItem value="any">From</SelectItem>
+                  {YEAR_OPTIONS.map((y) => (
+                    <SelectItem key={y} value={String(y)}>
+                      {y}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={toYear ? String(toYear) : "any"}
+                onValueChange={(v) => setYearRange(fromYear, v === "any" ? undefined : Number(v))}
+              >
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="To" />
+                </SelectTrigger>
+                <SelectContent className="max-h-64">
+                  <SelectItem value="any">To</SelectItem>
+                  {YEAR_OPTIONS.map((y) => (
+                    <SelectItem key={y} value={String(y)}>
+                      {y}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {(fromYear || toYear) && (
+              <button
+                onClick={() => setYearRange(undefined, undefined)}
+                className="mt-2 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+              >
+                Clear year filter
+              </button>
+            )}
+          </FilterGroup>
+
+          <FilterGroup title="Photographer">
             <div className="space-y-2">
-              {photographers.map((p) => (
-                <FilterCheck key={p} label={p} />
+              {photographersData?.slice(0, 6).map((p) => (
+                <FilterCheck
+                  key={p.name}
+                  label={p.name}
+                  count={p.count}
+                  checked={photographerParams.includes(p.name)}
+                  onCheckedChange={(checked) => toggleFilter("photographer", p.name, checked)}
+                />
               ))}
             </div>
-          </FilterGroup> */}
+          </FilterGroup>
 
           <FilterGroup title="County">
             <div className="space-y-2">
-              {counties.slice(0, 5).map((c) => (
-                <FilterCheck key={c} label={c} />
+              {countiesData?.slice(0, 8).map((c) => (
+                <FilterCheck
+                  key={c.name}
+                  label={c.name}
+                  count={c.count}
+                  checked={countyParams.includes(c.name)}
+                  onCheckedChange={(checked) => toggleFilter("county", c.name, checked)}
+                />
               ))}
             </div>
           </FilterGroup>
