@@ -16,10 +16,33 @@ import {
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { RequireAdmin } from "@/lib/auth/protected-route";
+import { useAuth } from "@/lib/auth/use-auth";
 
 export const Route = createFileRoute("/admin")({
-  component: AdminLayout,
+  component: () => (
+    <RequireAdmin>
+      <AdminLayout />
+    </RequireAdmin>
+  ),
 });
+
+const roleBadgeLabels: Record<string, string> = {
+  admin: "Administrator",
+  super_admin: "Super Administrator",
+  content_editor: "Content Editor",
+  customer: "Customer",
+};
+
+function initialsFor(fullName: string | undefined): string {
+  if (!fullName) return "";
+  return fullName
+    .split(" ")
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
 
 const nav: {
   to: string;
@@ -40,6 +63,7 @@ const nav: {
 function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { user } = useAuth();
   return (
     <div className="grid min-h-dvh grid-cols-[auto_1fr] bg-paper-warm">
       {/* Sidebar */}
@@ -115,15 +139,15 @@ function AdminLayout() {
               variant="outline"
               className="border-flag-red/40 bg-flag-red/5 text-flag-red text-[0.65rem] uppercase tracking-wider"
             >
-              Super Administrator
+              {roleBadgeLabels[user?.role ?? ""] ?? user?.role}
             </Badge>
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full bg-ink text-paper grid place-items-center text-xs font-medium">
-                JM
+                {initialsFor(user?.full_name)}
               </div>
               <div className="hidden text-xs sm:block">
-                <p className="font-medium leading-tight">J. Muthoni</p>
-                <p className="text-muted-foreground">Chief Archivist</p>
+                <p className="font-medium leading-tight">{user?.full_name}</p>
+                <p className="text-muted-foreground">{user?.email}</p>
               </div>
             </div>
           </div>

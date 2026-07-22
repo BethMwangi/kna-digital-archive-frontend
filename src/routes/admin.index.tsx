@@ -1,6 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { orders, assets, formatKES } from "@/lib/mock-data";
 import { OrderStatusBadge } from "@/components/kna/components";
+import { useCategories, useCollections } from "@/hooks/use-assets";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -18,6 +20,12 @@ export const Route = createFileRoute("/admin/")({
 });
 
 function Dashboard() {
+  const { data: categoriesData, isPending: categoriesPending } = useCategories();
+  const { data: collectionsData, isPending: collectionsPending } = useCollections();
+
+  const categoryCount = categoriesData?.length ?? 0;
+  const collectionCount = collectionsData?.length ?? 0;
+
   return (
     <div className="space-y-10">
       <div>
@@ -28,8 +36,84 @@ function Dashboard() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Revenue" value={formatKES(1842000)} delta="+12.4%" up />
         <Stat label="Orders" value="384" delta="+6.1%" up />
-        <Stat label="Downloads" value="2,914" delta="+18.9%" up />
-        <Stat label="New users" value="71" delta="-2.3%" up={false} />
+        <Stat label="Categories" value={String(categoryCount)} delta="Live" up />
+        <Stat label="Collections" value={String(collectionCount)} delta="Live" up />
+      </div>
+
+      <div className="grid gap-8 lg:grid-cols-2">
+        <section>
+          <div className="flex items-end justify-between border-b border-border pb-3">
+            <h2 className="font-display text-2xl">Categories</h2>
+            <Link
+              to="/admin/categories"
+              className="text-sm underline underline-offset-4 hover:no-underline"
+            >
+              Manage
+            </Link>
+          </div>
+          <div className="mt-4 overflow-hidden border border-border">
+            {categoriesPending ? (
+              <div className="space-y-2 p-4">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+              </div>
+            ) : categoryCount === 0 ? (
+              <p className="p-4 text-sm text-muted-foreground">No categories yet.</p>
+            ) : (
+              <ul>
+                {categoriesData?.slice(0, 8).map((c) => (
+                  <li
+                    key={c.id}
+                    className="flex items-center justify-between border-b border-border px-4 py-2.5 text-sm last:border-b-0"
+                  >
+                    <span>{c.name}</span>
+                    <span className="tabular-nums text-muted-foreground">
+                      {(c.count ?? 0).toLocaleString()}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+
+        <section>
+          <div className="flex items-end justify-between border-b border-border pb-3">
+            <h2 className="font-display text-2xl">Collections</h2>
+            <Link
+              to="/admin/collections"
+              className="text-sm underline underline-offset-4 hover:no-underline"
+            >
+              Manage
+            </Link>
+          </div>
+          <div className="mt-4 overflow-hidden border border-border">
+            {collectionsPending ? (
+              <div className="space-y-2 p-4">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+              </div>
+            ) : collectionCount === 0 ? (
+              <p className="p-4 text-sm text-muted-foreground">No collections yet.</p>
+            ) : (
+              <ul>
+                {collectionsData?.slice(0, 8).map((c) => (
+                  <li
+                    key={c.id}
+                    className="flex items-center justify-between border-b border-border px-4 py-2.5 text-sm last:border-b-0"
+                  >
+                    <span>{c.name}</span>
+                    <span className="tabular-nums text-muted-foreground">
+                      {(c.count ?? 0).toLocaleString()}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
