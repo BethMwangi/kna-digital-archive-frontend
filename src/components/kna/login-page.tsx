@@ -34,7 +34,18 @@ export function LoginPage({ redirect }: { redirect?: string }) {
     login.mutate(values, {
       onSuccess: (user) => {
         const isStaff = user.role === "admin" || user.role === "super_admin";
-        navigate({ to: (redirect ?? (isStaff ? "/admin" : "/account")) as never });
+        // Staff manage the archive, they don't shop — always land them in the
+        // admin console rather than the customer account dashboard, even if
+        // `redirect` points elsewhere (e.g. they'd bookmarked "/"). A
+        // `redirect` that's already within /admin (RequireAdmin bouncing an
+        // unauthenticated staff visit to a deep link) is still honored so
+        // the deep link isn't lost.
+        const target = isStaff
+          ? redirect && redirect.startsWith("/admin")
+            ? redirect
+            : "/admin"
+          : (redirect ?? "/account");
+        navigate({ to: target as never });
       },
       onError: (error) => {
         setFormError(applyApiErrorToForm(error, form.setError));

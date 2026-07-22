@@ -31,17 +31,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -59,12 +48,7 @@ import { PhoneField } from "@/components/kna/phone-field";
 import { UserPlus, MoreHorizontal, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/use-auth";
-import {
-  useAdminUsers,
-  useCreateAdminUser,
-  useDeleteAdminUser,
-  useUpdateAdminUser,
-} from "@/hooks/use-admin-users";
+import { useAdminUsers, useCreateAdminUser, useUpdateAdminUser } from "@/hooks/use-admin-users";
 import {
   adminUserCreateSchema,
   adminUserUpdateSchema,
@@ -87,6 +71,11 @@ const roleLabels: Record<Role, string> = {
 };
 
 const invitableRoles: Role[] = ["content_editor", "admin", "super_admin"];
+
+/** AdminUserViewSet's raw DRF payload doesn't include full_name (unlike the enveloped UserSerializer profile/login use), so derive it. */
+function displayName(user: Pick<User, "full_name" | "first_name" | "last_name">): string {
+  return user.full_name || `${user.first_name} ${user.last_name}`.trim();
+}
 
 function AdminUsers() {
   const { isSuperAdmin } = useAuth();
@@ -185,14 +174,14 @@ function AdminUsers() {
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-full bg-ink text-paper grid place-items-center text-xs font-medium">
-                      {u.full_name
+                      {displayName(u)
                         .split(" ")
                         .map((n) => n[0])
                         .slice(0, 2)
                         .join("")}
                     </div>
                     <div>
-                      <p className="text-sm font-medium">{u.full_name}</p>
+                      <p className="text-sm font-medium">{displayName(u)}</p>
                       <p className="text-xs text-muted-foreground">{u.email}</p>
                     </div>
                   </div>
@@ -221,11 +210,7 @@ function AdminUsers() {
                   </span>
                 </TableCell>
                 <TableCell className="text-right">
-                  <RowActions
-                    user={u}
-                    canAssignAdminRoles={isSuperAdmin}
-                    canDelete={isSuperAdmin}
-                  />
+                  <RowActions user={u} canAssignAdminRoles={isSuperAdmin} />
                 </TableCell>
               </TableRow>
             ))}
@@ -260,18 +245,9 @@ function AdminUsers() {
   );
 }
 
-function RowActions({
-  user,
-  canAssignAdminRoles,
-  canDelete,
-}: {
-  user: User;
-  canAssignAdminRoles: boolean;
-  canDelete: boolean;
-}) {
+function RowActions({ user, canAssignAdminRoles }: { user: User; canAssignAdminRoles: boolean }) {
   const [editOpen, setEditOpen] = useState(false);
   const updateUser = useUpdateAdminUser();
-  const deleteUser = useDeleteAdminUser();
 
   const toggleStatus = () => {
     updateUser.mutate({
@@ -293,33 +269,6 @@ function RowActions({
           <DropdownMenuItem onSelect={toggleStatus} disabled={updateUser.isPending}>
             {user.account_status === "active" ? "Suspend" : "Reactivate"}
           </DropdownMenuItem>
-          {canDelete && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <DropdownMenuItem
-                  onSelect={(e) => e.preventDefault()}
-                  className="text-flag-red focus:text-flag-red"
-                >
-                  Delete
-                </DropdownMenuItem>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete {user.full_name}?</AlertDialogTitle>
-                  <AlertDialogDescription>This can't be undone from the UI.</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-flag-red text-white hover:bg-flag-red/90"
-                    onClick={() => deleteUser.mutate(user.id)}
-                  >
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
         </DropdownMenuContent>
       </DropdownMenu>
       <EditUserDialog
@@ -390,7 +339,7 @@ function EditUserDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="font-display text-2xl">Edit {user.full_name}</DialogTitle>
+          <DialogTitle className="font-display text-2xl">Edit {displayName(user)}</DialogTitle>
           <DialogDescription>{user.email}</DialogDescription>
         </DialogHeader>
 
