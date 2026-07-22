@@ -10,9 +10,18 @@ export function useLogin() {
     mutationFn: authApi.login,
     // Replay whatever the visitor collected as a guest into their real
     // account cart the moment a session exists (see merge-guest-cart.ts).
+    // Caught locally: TanStack Query awaits this hook-level onSuccess before
+    // dispatching the mutation as successful, so an unhandled rejection here
+    // would flip the whole login into an error state — including skipping
+    // the caller's onSuccess (LoginPage's post-login redirect) — even though
+    // the session was already established by authApi.login.
     onSuccess: async () => {
-      await mergeGuestCartIntoServer();
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart });
+      try {
+        await mergeGuestCartIntoServer();
+        queryClient.invalidateQueries({ queryKey: queryKeys.cart });
+      } catch (error) {
+        console.error("Guest cart merge failed after login", error);
+      }
     },
   });
 }
