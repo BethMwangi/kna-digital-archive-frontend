@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -11,13 +11,22 @@ import {
   Settings,
   Bell,
   ChevronsLeft,
+  ChevronsUpDown,
+  LogOut,
   Search,
 } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { RequireAdmin } from "@/lib/auth/protected-route";
 import { useAuth } from "@/lib/auth/use-auth";
+import { useLogout } from "@/hooks/use-auth-mutations";
 
 export const Route = createFileRoute("/admin")({
   component: () => (
@@ -64,6 +73,8 @@ function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const logout = useLogout();
   return (
     <div className="grid min-h-dvh grid-cols-[auto_1fr] bg-paper-warm">
       {/* Sidebar */}
@@ -114,13 +125,29 @@ function AdminLayout() {
             );
           })}
         </nav>
-        <button
-          onClick={() => setCollapsed((c) => !c)}
-          className="flex items-center gap-2 border-t border-white/10 p-4 text-xs text-paper/60 hover:text-paper"
-        >
-          <ChevronsLeft className={cn("h-4 w-4 transition-transform", collapsed && "rotate-180")} />
-          {!collapsed && "Collapse"}
-        </button>
+        <div className="border-t border-white/10">
+          <button
+            onClick={() => logout.mutate(undefined, { onSuccess: () => navigate({ to: "/" }) })}
+            disabled={logout.isPending}
+            title="Sign out"
+            className={cn(
+              "flex w-full items-center gap-3 px-3 py-2 text-sm text-paper/75 transition hover:bg-white/10 hover:text-paper",
+              collapsed && "justify-center px-0",
+            )}
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+            {!collapsed && <span>Sign out</span>}
+          </button>
+          <button
+            onClick={() => setCollapsed((c) => !c)}
+            className="flex items-center gap-2 p-4 text-xs text-paper/60 hover:text-paper"
+          >
+            <ChevronsLeft
+              className={cn("h-4 w-4 transition-transform", collapsed && "rotate-180")}
+            />
+            {!collapsed && "Collapse"}
+          </button>
+        </div>
       </aside>
 
       {/* Main */}
@@ -141,15 +168,30 @@ function AdminLayout() {
             >
               {roleBadgeLabels[user?.role ?? ""] ?? user?.role}
             </Badge>
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-ink text-paper grid place-items-center text-xs font-medium">
-                {initialsFor(user?.full_name)}
-              </div>
-              <div className="hidden text-xs sm:block">
-                <p className="font-medium leading-tight">{user?.full_name}</p>
-                <p className="text-muted-foreground">{user?.email}</p>
-              </div>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 rounded-md p-1 hover:bg-muted">
+                  <div className="h-8 w-8 rounded-full bg-ink text-paper grid place-items-center text-xs font-medium">
+                    {initialsFor(user?.full_name)}
+                  </div>
+                  <div className="hidden text-left text-xs sm:block">
+                    <p className="font-medium leading-tight">{user?.full_name}</p>
+                    <p className="text-muted-foreground">{user?.email}</p>
+                  </div>
+                  <ChevronsUpDown className="hidden h-3.5 w-3.5 text-muted-foreground sm:block" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onSelect={() =>
+                    logout.mutate(undefined, { onSuccess: () => navigate({ to: "/" }) })
+                  }
+                  disabled={logout.isPending}
+                >
+                  <LogOut className="h-4 w-4" /> Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
         <main className="min-w-0 flex-1 bg-background p-6 md:p-10">
