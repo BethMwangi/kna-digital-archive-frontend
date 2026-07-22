@@ -81,8 +81,8 @@ function toCard(a: AssetListItem): AssetCardData {
 }
 
 export function BrowsePage() {
-  const search = useSearch({ from: "/browse" });
-  const navigate = useNavigate({ from: "/browse" });
+  const search = useSearch({ strict: false });
+  const navigate = useNavigate({ strict: false });
 
   const page = search.page || 1;
   const q = search.q;
