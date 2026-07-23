@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 const ASSET_TYPE_OPTIONS = [
   { value: "photograph", label: "Photograph" },
@@ -177,31 +177,27 @@ export function BrowsePage() {
         {/* Filters */}
         <aside className="space-y-8">
           <FilterGroup title="Category">
-            <div className="space-y-2">
-              {categoriesData?.slice(0, 6).map((c) => (
-                <FilterCheck
-                  key={c.id}
-                  label={c.name}
-                  count={c.count}
-                  checked={categoryParams.includes(c.id)}
-                  onCheckedChange={(checked) => toggleFilter("category", c.id, checked)}
-                />
-              ))}
-            </div>
+            <FilterCheckList
+              items={categoriesData}
+              limit={6}
+              getKey={(c) => c.id}
+              getLabel={(c) => c.name}
+              getCount={(c) => c.count}
+              checked={(c) => categoryParams.includes(c.id)}
+              onCheckedChange={(c, checked) => toggleFilter("category", c.id, checked)}
+            />
           </FilterGroup>
 
           <FilterGroup title="Collection">
-            <div className="space-y-2">
-              {collectionsData?.slice(0, 6).map((c) => (
-                <FilterCheck
-                  key={c.id}
-                  label={c.name}
-                  count={c.count}
-                  checked={collectionParams.includes(c.id)}
-                  onCheckedChange={(checked) => toggleFilter("collection", c.id, checked)}
-                />
-              ))}
-            </div>
+            <FilterCheckList
+              items={collectionsData}
+              limit={6}
+              getKey={(c) => c.id}
+              getLabel={(c) => c.name}
+              getCount={(c) => c.count}
+              checked={(c) => collectionParams.includes(c.id)}
+              onCheckedChange={(c, checked) => toggleFilter("collection", c.id, checked)}
+            />
           </FilterGroup>
 
           <FilterGroup title="Asset type">
@@ -263,31 +259,27 @@ export function BrowsePage() {
           </FilterGroup>
 
           <FilterGroup title="Photographer">
-            <div className="space-y-2">
-              {photographersData?.slice(0, 6).map((p) => (
-                <FilterCheck
-                  key={p.name}
-                  label={p.name}
-                  count={p.count}
-                  checked={photographerParams.includes(p.name)}
-                  onCheckedChange={(checked) => toggleFilter("photographer", p.name, checked)}
-                />
-              ))}
-            </div>
+            <FilterCheckList
+              items={photographersData}
+              limit={6}
+              getKey={(p) => p.name}
+              getLabel={(p) => p.name}
+              getCount={(p) => p.count}
+              checked={(p) => photographerParams.includes(p.name)}
+              onCheckedChange={(p, checked) => toggleFilter("photographer", p.name, checked)}
+            />
           </FilterGroup>
 
           <FilterGroup title="County">
-            <div className="space-y-2">
-              {countiesData?.slice(0, 8).map((c) => (
-                <FilterCheck
-                  key={c.name}
-                  label={c.name}
-                  count={c.count}
-                  checked={countyParams.includes(c.name)}
-                  onCheckedChange={(checked) => toggleFilter("county", c.name, checked)}
-                />
-              ))}
-            </div>
+            <FilterCheckList
+              items={countiesData}
+              limit={8}
+              getKey={(c) => c.name}
+              getLabel={(c) => c.name}
+              getCount={(c) => c.count}
+              checked={(c) => countyParams.includes(c.name)}
+              onCheckedChange={(c, checked) => toggleFilter("county", c.name, checked)}
+            />
           </FilterGroup>
 
           <FilterGroup title="Tags">
@@ -322,21 +314,6 @@ export function BrowsePage() {
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
               )}
             </p>
-            <div className="flex items-center gap-2">
-              <Label className="text-xs text-muted-foreground">Sort</Label>
-              <Select defaultValue="relevance">
-                <SelectTrigger className="h-8 w-[180px] text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="relevance">Relevance</SelectItem>
-                  <SelectItem value="newest">Newest</SelectItem>
-                  <SelectItem value="oldest">Oldest</SelectItem>
-                  <SelectItem value="price-asc">Price · low to high</SelectItem>
-                  <SelectItem value="price-desc">Price · high to low</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           {isPending ? (
@@ -428,6 +405,51 @@ function FilterGroup({ title, children }: { title: string; children: React.React
     <div>
       <h3 className="eyebrow mb-3">{title}</h3>
       {children}
+    </div>
+  );
+}
+/** Truncates a filter's options to `limit` with a "Show all"/"Show less" toggle,
+ *  instead of silently dropping every option past a fixed cutoff. */
+function FilterCheckList<T>({
+  items,
+  limit,
+  getKey,
+  getLabel,
+  getCount,
+  checked,
+  onCheckedChange,
+}: {
+  items: T[] | undefined;
+  limit: number;
+  getKey: (item: T) => string;
+  getLabel: (item: T) => string;
+  getCount?: (item: T) => number | undefined;
+  checked: (item: T) => boolean;
+  onCheckedChange: (item: T, checked: boolean) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const all = items ?? [];
+  const visible = expanded ? all : all.slice(0, limit);
+
+  return (
+    <div className="space-y-2">
+      {visible.map((item) => (
+        <FilterCheck
+          key={getKey(item)}
+          label={getLabel(item)}
+          count={getCount?.(item)}
+          checked={checked(item)}
+          onCheckedChange={(next) => onCheckedChange(item, next)}
+        />
+      ))}
+      {all.length > limit && (
+        <button
+          onClick={() => setExpanded((e) => !e)}
+          className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+        >
+          {expanded ? "Show less" : `Show all (${all.length})`}
+        </button>
+      )}
     </div>
   );
 }
