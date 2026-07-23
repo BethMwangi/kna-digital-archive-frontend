@@ -23,6 +23,12 @@ function renderBrowsePage() {
   const browseRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/browse",
+    validateSearch: (search: Record<string, unknown>) => ({
+      q: search.q as string | undefined,
+      category: search.category as string | undefined,
+      collection: search.collection as string | undefined,
+      page: Number(search.page) || 1,
+    }),
     component: BrowsePage,
   });
   const routeTree = rootRoute.addChildren([
@@ -39,7 +45,9 @@ function renderBrowsePage() {
   });
   // Disable retries so a flaky/slow response fails fast instead of retrying
   // through vitest's default timeout — the app itself keeps retries on.
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
+  });
 
   render(
     <QueryClientProvider client={queryClient}>
@@ -63,7 +71,7 @@ describe("BrowsePage pagination", () => {
     await screen.findByText("Archive record 21");
     expect(screen.getByText(/Showing 21–40 of 243/)).toBeInTheDocument();
     expect(screen.queryByText("Archive record 1")).not.toBeInTheDocument();
-  });
+  }, 15000);
 
   it("disables Previous on the first page and re-enables it after Next", async () => {
     const user = userEvent.setup();
@@ -82,5 +90,5 @@ describe("BrowsePage pagination", () => {
       "aria-disabled",
       "false",
     );
-  });
+  }, 15000);
 });

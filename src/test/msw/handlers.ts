@@ -181,4 +181,38 @@ export const handlers = [
       ),
     );
   }),
+
+  http.get(`${API}/categories/`, () =>
+    HttpResponse.json(
+      envelope(
+        {
+          count: 2,
+          next: null,
+          previous: null,
+          results: [
+            { id: "cat-1", name: "Politics", slug: "politics", description: "Political history", count: 12 },
+            { id: "cat-2", name: "Culture", slug: "culture", description: "Cultural archives", count: 8 },
+          ],
+        },
+        "Categories retrieved.",
+      ),
+    ),
+  ),
+
+  http.get(`${API}/collections/`, () =>
+    HttpResponse.json(
+      envelope(
+        {
+          count: 2,
+          next: null,
+          previous: null,
+          results: [
+            { id: "col-1", name: "Independence Era", slug: "independence", description: "1963 independence", count: 15 },
+            { id: "col-2", name: "Presidency", slug: "presidency", description: "Presidential records", count: 20 },
+          ],
+        },
+        "Collections retrieved.",
+      ),
+    ),
+  ),
 ];
