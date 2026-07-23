@@ -338,16 +338,23 @@ export function BrowsePage() {
             />
           ) : (
             <>
-              <div
-                className={
-                  isFetching
-                    ? "grid gap-8 opacity-50 transition-opacity sm:grid-cols-2 lg:grid-cols-3"
-                    : "grid gap-8 transition-opacity sm:grid-cols-2 lg:grid-cols-3"
-                }
-              >
-                {results.map((a) => (
-                  <AssetCard key={a.id} asset={toCard(a)} />
-                ))}
+              <div className="relative">
+                <div
+                  className={
+                    isFetching
+                      ? "grid gap-8 opacity-40 transition-opacity sm:grid-cols-2 lg:grid-cols-3"
+                      : "grid gap-8 transition-opacity sm:grid-cols-2 lg:grid-cols-3"
+                  }
+                >
+                  {results.map((a) => (
+                    <AssetCard key={a.id} asset={toCard(a)} />
+                  ))}
+                </div>
+                {isFetching && (
+                  <div className="absolute inset-0 flex items-start justify-center pt-20">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                )}
               </div>
               <div className="mt-12 flex items-center justify-between border-t border-border pt-6">
                 <p className="text-xs text-muted-foreground">

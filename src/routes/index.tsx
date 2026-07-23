@@ -70,32 +70,29 @@ function HomePage() {
           className="absolute inset-0 h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-ink/10 via-ink/20 to-ink/60" />
-        <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-20 md:px-8 md:py-32 lg:grid-cols-12">
-          <div className="relative z-10 lg:col-span-8">
-            <div className="inline-block max-w-2xl rounded-2xl bg-ink/55 p-6 backdrop-blur-sm md:p-8">
-              <p className="eyebrow !text-paper/70">Established 1963 · National archive</p>
-              <h1 className="mt-4 font-display text-4xl leading-[1.05] md:text-6xl lg:text-7xl">
-                Kenya's history, <span className="italic text-paper/85">preserved</span> and
-                licensed.
-              </h1>
-              <p className="mt-6 text-base text-paper/80 md:text-lg">
-                Six decades of state photography, wire copy and audiovisual records — indexed,
-                catalogued and available for editorial, commercial, educational and government use.
-              </p>
-            </div>
-            <div className="mt-8 max-w-2xl bg-paper text-foreground shadow-2xl">
-              <SearchBar size="lg" />
-            </div>
-            <div className="mt-6 flex flex-wrap gap-2">
-              {["Independence", "Kenyatta", "Wildlife", "Nairobi 1970s", "Kip Keino"].map((t) => (
-                <button
-                  key={t}
-                  className="rounded-full border border-paper/25 bg-ink/40 px-3 py-1 text-xs text-paper/80 backdrop-blur hover:border-paper/60 hover:text-paper"
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
+        <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center px-4 py-8 text-center md:px-8 md:py-12">
+          <div className="max-w-2xl rounded-2xl bg-ink/55 p-4 backdrop-blur-sm md:p-6">
+            <p className="eyebrow !text-paper/70">Established 1963 · National archive</p>
+            <h1 className="mt-3 font-display text-3xl leading-[1.05] md:text-5xl">
+              Kenya's history, <span className="italic text-paper/85">preserved</span> and licensed.
+            </h1>
+            <p className="mt-4 text-sm text-paper/80 md:text-base">
+              Six decades of state photography, wire copy and audiovisual records — indexed,
+              catalogued and available for editorial, commercial, educational and government use.
+            </p>
+          </div>
+          <div className="mt-5 w-full max-w-2xl bg-paper text-foreground shadow-2xl">
+            <SearchBar size="lg" />
+          </div>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            {["Independence", "Kenyatta", "Wildlife", "Nairobi 1970s", "Kip Keino"].map((t) => (
+              <button
+                key={t}
+                className="rounded-full border border-paper/25 bg-ink/40 px-3 py-1 text-xs text-paper/80 backdrop-blur hover:border-paper/60 hover:text-paper"
+              >
+                {t}
+              </button>
+            ))}
           </div>
         </div>
       </section>
