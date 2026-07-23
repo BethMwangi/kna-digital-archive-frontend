@@ -10,11 +10,11 @@ function AuthLayout() {
   return (
     <div className="min-h-dvh grid lg:grid-cols-2">
       {/* Form side */}
-      <div className="flex flex-col p-6 md:p-12">
+      <div className="flex min-h-dvh flex-col p-6 md:p-12">
         <Link to="/" className="flex items-center gap-3" aria-label="Urithi home">
-          <UrithiLogo className="h-9 w-auto sm:h-11 md:h-14" />
+          <UrithiLogo className="h-12 w-auto sm:h-14 md:h-16" />
         </Link>
-        <div className="flex flex-1 items-center justify-center py-10">
+        <div className="flex flex-1 items-center justify-center py-6">
           <div className="w-full max-w-md">
             <Outlet />
           </div>

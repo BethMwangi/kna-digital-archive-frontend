@@ -19,10 +19,17 @@ import { z } from "zod";
  * rather than imported, since createFileRoute's output is typed against the
  * full app's router context and can't drop into a standalone test tree (see
  * login-flow.test.tsx's comment for the same constraint).
+ *
+ * Password reset is still uid/token link-based; email verification moved to
+ * a 6-digit code entered on the page (see auth.verify.tsx), so /verify-email
+ * only has an `email` param worth preserving now.
  */
-const searchSchema = z.object({
+const resetSearchSchema = z.object({
   uid: z.string().optional(),
   token: z.string().optional(),
+});
+const verifySearchSchema = z.object({
+  email: z.string().optional(),
 });
 
 function renderRedirectFrom(initialPath: string) {
@@ -31,7 +38,7 @@ function renderRedirectFrom(initialPath: string) {
   const resetPasswordRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/reset-password",
-    validateSearch: (search) => searchSchema.parse(search),
+    validateSearch: (search) => resetSearchSchema.parse(search),
     beforeLoad: ({ search }) => {
       throw redirect({ to: "/auth/reset", search });
     },
@@ -39,7 +46,7 @@ function renderRedirectFrom(initialPath: string) {
   const verifyEmailRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/verify-email",
-    validateSearch: (search) => searchSchema.parse(search),
+    validateSearch: (search) => verifySearchSchema.parse(search),
     beforeLoad: ({ search }) => {
       throw redirect({ to: "/auth/verify", search });
     },
@@ -47,7 +54,7 @@ function renderRedirectFrom(initialPath: string) {
   const authResetRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/auth/reset",
-    validateSearch: (search) => searchSchema.parse(search),
+    validateSearch: (search) => resetSearchSchema.parse(search),
     component: function AuthReset() {
       const { uid, token } = authResetRoute.useSearch();
       return (
@@ -60,14 +67,10 @@ function renderRedirectFrom(initialPath: string) {
   const authVerifyRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/auth/verify",
-    validateSearch: (search) => searchSchema.parse(search),
+    validateSearch: (search) => verifySearchSchema.parse(search),
     component: function AuthVerify() {
-      const { uid, token } = authVerifyRoute.useSearch();
-      return (
-        <div>
-          Verify page reached with uid={uid} token={token}
-        </div>
-      );
+      const { email } = authVerifyRoute.useSearch();
+      return <div>Verify page reached with email={email}</div>;
     },
   });
 
@@ -100,10 +103,10 @@ describe("email link path redirects", () => {
     expect(router.state.location.pathname).toBe("/auth/reset");
   });
 
-  it("redirects /verify-email?uid&token to /auth/verify, preserving both params", async () => {
-    const router = renderRedirectFrom("/verify-email?uid=u-789&token=t-000");
+  it("redirects /verify-email?email to /auth/verify, preserving the param", async () => {
+    const router = renderRedirectFrom("/verify-email?email=wanjiku%40example.co.ke");
 
-    await screen.findByText("Verify page reached with uid=u-789 token=t-000");
+    await screen.findByText("Verify page reached with email=wanjiku@example.co.ke");
     expect(router.state.location.pathname).toBe("/auth/verify");
   });
 });

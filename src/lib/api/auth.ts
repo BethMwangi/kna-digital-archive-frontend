@@ -54,11 +54,20 @@ export function resetPassword(input: ResetPasswordInput): Promise<void> {
 }
 
 export interface VerifyEmailInput {
-  uid: string;
-  token: string;
+  email: string;
+  code: string;
 }
 
-/** POST /auth/verify-email — uid/token come from the emailed verification link's query params. */
+/** POST /auth/verify-email — a 6-digit code emailed to the address at registration, not a link. */
 export function verifyEmail(input: VerifyEmailInput): Promise<void> {
   return apiClient.post<void>("/auth/verify-email", input, { skipAuth: true });
+}
+
+export interface ResendVerificationInput {
+  email: string;
+}
+
+/** POST /auth/resend-verification — always the same response, whether or not the account exists/is already verified. */
+export function resendVerification(input: ResendVerificationInput): Promise<void> {
+  return apiClient.post<void>("/auth/resend-verification", input, { skipAuth: true });
 }

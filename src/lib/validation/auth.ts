@@ -44,6 +44,13 @@ export const forgotPasswordSchema = z.object({
 
 export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
+export const verifyEmailSchema = z.object({
+  email: z.string().email("Enter a valid email address."),
+  code: z.string().regex(/^\d{6}$/, "Enter the 6-digit code."),
+});
+
+export type VerifyEmailFormValues = z.infer<typeof verifyEmailSchema>;
+
 export const resetPasswordSchema = z
   .object({
     new_password: password,

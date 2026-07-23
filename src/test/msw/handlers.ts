@@ -98,12 +98,18 @@ export const handlers = [
   }),
 
   http.post(`${API}/auth/verify-email`, async ({ request }) => {
-    const body = (await request.json()) as { uid: string; token: string };
-    if (body.token !== "valid-token") {
-      return errorEnvelope(400, "Invalid or expired verification link.");
+    const body = (await request.json()) as { email: string; code: string };
+    if (body.code !== "123456") {
+      return errorEnvelope(400, "Validation failed.", {
+        code: ["Invalid or expired code."],
+      });
     }
     return HttpResponse.json(envelope(null, "Email verified successfully."));
   }),
+
+  http.post(`${API}/auth/resend-verification`, () =>
+    HttpResponse.json(envelope(null, "If that email is registered, a new code has been sent.")),
+  ),
 
   http.get(`${API}/users/me`, ({ request }) => {
     const auth = request.headers.get("Authorization");

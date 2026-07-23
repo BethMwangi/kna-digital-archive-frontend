@@ -1,8 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
-import { AlertCircle, Loader2, MailCheck } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,8 +37,8 @@ function strength(pw: string) {
 
 function RegisterPage() {
   const register = useRegister();
+  const navigate = useNavigate();
   const [formError, setFormError] = useState("");
-  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -59,31 +59,13 @@ function RegisterPage() {
   const onSubmit = form.handleSubmit((values) => {
     setFormError("");
     register.mutate(values, {
-      onSuccess: (user) => setRegisteredEmail(user.email),
+      // The code to verify with is emailed, not returned here — hand off to
+      // /auth/verify with the address prefilled so the user isn't asked to
+      // retype what they just typed.
+      onSuccess: (user) => navigate({ to: "/auth/verify", search: { email: user.email } }),
       onError: (error) => setFormError(applyApiErrorToForm(error, form.setError)),
     });
   });
-
-  if (registeredEmail) {
-    return (
-      <div>
-        <div className="grid h-12 w-12 place-items-center bg-paper-warm text-foreground">
-          <MailCheck className="h-5 w-5" />
-        </div>
-        <p className="eyebrow mt-6">One more step</p>
-        <h1 className="mt-3 font-display text-4xl">Check your email</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          We sent a verification link to <span className="text-foreground">{registeredEmail}</span>.
-          Follow it to verify your address, then sign in.
-        </p>
-        <p className="mt-8 text-sm text-muted-foreground">
-          <Link to="/auth/login" className="text-foreground underline underline-offset-4">
-            Back to sign in
-          </Link>
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div>

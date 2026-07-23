@@ -32,8 +32,6 @@ function AccountLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { user, isAdminOrAbove } = useAuth();
-  // Bootstrap already populated the user via silent refresh; this query
-  // keeps it fresh and lets other components re-fetch after a profile edit.
   useMe();
   const logout = useLogout();
 
@@ -72,7 +70,18 @@ function AccountLayout() {
               </Link>
             )}
             <button
-              onClick={() => logout.mutate(undefined, { onSuccess: () => navigate({ to: "/" }) })}
+              onClick={() => {
+                // Navigate off the protected route *before* the mutation
+                // settles: clearSession() (in useLogout's onSettled) flips
+                // isAuthenticated to false, and if we're still mounted under
+                // RequireAuth when that happens, its own redirect to
+                // /auth/login fires first and wins the race against this
+                // navigate — landing the user on the login page instead of
+                // home. Navigating first means RequireAuth isn't mounted by
+                // the time the session actually clears.
+                navigate({ to: "/" });
+                logout.mutate();
+              }}
               disabled={logout.isPending}
               className="flex w-full items-center gap-3 border-l-2 border-transparent px-3 py-2 text-sm text-muted-foreground transition hover:border-border hover:text-foreground"
             >

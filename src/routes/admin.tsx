@@ -75,6 +75,15 @@ function AdminLayout() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const logout = useLogout();
+  // Navigate off the protected /admin route *before* the mutation settles:
+  // clearSession() (in useLogout's onSettled) flips isAuthenticated to
+  // false, and if we're still mounted under RequireAdmin when that happens,
+  // its own redirect to /auth/login fires first and wins the race — landing
+  // the user on the login page instead of home.
+  const handleLogout = () => {
+    navigate({ to: "/" });
+    logout.mutate();
+  };
   return (
     <div className="grid min-h-dvh grid-cols-[auto_1fr] bg-paper-warm">
       {/* Sidebar */}
@@ -127,7 +136,7 @@ function AdminLayout() {
         </nav>
         <div className="border-t border-white/10">
           <button
-            onClick={() => logout.mutate(undefined, { onSuccess: () => navigate({ to: "/" }) })}
+            onClick={handleLogout}
             disabled={logout.isPending}
             title="Sign out"
             className={cn(
@@ -182,12 +191,7 @@ function AdminLayout() {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onSelect={() =>
-                    logout.mutate(undefined, { onSuccess: () => navigate({ to: "/" }) })
-                  }
-                  disabled={logout.isPending}
-                >
+                <DropdownMenuItem onSelect={handleLogout} disabled={logout.isPending}>
                   <LogOut className="h-4 w-4" /> Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
