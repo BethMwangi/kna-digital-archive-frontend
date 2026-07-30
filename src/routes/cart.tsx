@@ -110,7 +110,7 @@ function CartPage() {
                   </Link>
                 </Button>
                 <p className="mt-3 text-center text-xs text-muted-foreground">
-                  Secure payment via eCitizen
+                  Secure payment via Pesaflow
                 </p>
               </div>
             </aside>

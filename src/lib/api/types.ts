@@ -225,12 +225,16 @@ export interface PaymentOut {
   id: string;
   order: string;
   provider: string;
-  /** e.g. "pending" | "success" | "failed" — full enum not yet confirmed. */
+  /** e.g. "initiated" | "pending" | "completed" | "failed" — matches backend Payment.Status. */
   status: string;
-  /** Not yet confirmed on the response — assumed to mirror the order total. */
+  /** Mirrors the order total. */
   amount?: number;
-  /** Present on initiate — the mock gateway's own "Pay Now" test page. */
+  /** Pesaflow hosted checkout URL — redirect the customer here to complete payment. */
+  checkout_url?: string;
+  /** Present on initiate (mock only) — the mock gateway's own "Pay Now" test page. */
   simulate_url?: string;
+  /** Present on initiate failure — human-readable error from the gateway. */
+  error?: string;
   created_at: string;
 }
 

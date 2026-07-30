@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { SiteShell } from "@/components/kna/site-shell";
@@ -17,10 +17,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useState } from "react";
-import { Check, Lock, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, Lock, XCircle, ExternalLink, Loader2 } from "lucide-react";
+
+/**
+ * DEV_MODE: set to true to use the mock provider instead of Pesaflow.
+ * In production this should always be false.
+ */
+const USE_MOCK_PROVIDER = import.meta.env.DEV && import.meta.env.VITE_USE_MOCK_PAYMENTS === "true";
 
 export const Route = createFileRoute("/checkout")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    payment: (search.payment as string) || undefined,
+    order: (search.order as string) || undefined,
+  }),
   head: () => ({ meta: [{ title: "Checkout — Urithi Digital Archive" }] }),
   component: () => (
     <RequireAuth>
@@ -52,9 +62,11 @@ const EMPTY_BILLING: BillingDetails = {
 };
 
 function CheckoutPage() {
+  const searchParams = useSearch({ from: "/checkout" });
   const [order, setOrder] = useState<OrderOut | null>(null);
   const [payment, setPayment] = useState<PaymentOut | null>(null);
   const [paid, setPaid] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const { user } = useAuth();
   const [billing, setBilling] = useState<BillingDetails>(() => ({
     firstName: user?.first_name || "",
@@ -79,6 +91,19 @@ function CheckoutPage() {
   const initiate = useInitiatePayment();
   const simulate = useSimulatePayment();
 
+  // Handle Pesaflow return redirects (success/failure query params)
+  useEffect(() => {
+    if (searchParams.payment === "success") {
+      setPaid(true);
+      // Refresh downloads and orders since payment completed externally
+      queryClient.invalidateQueries({ queryKey: queryKeys.downloads });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.list });
+      queryClient.invalidateQueries({ queryKey: queryKeys.cart });
+    } else if (searchParams.payment === "failed") {
+      toast.error("Payment was not completed. You can try again.");
+    }
+  }, [searchParams.payment, queryClient]);
+
   const handleCheckout = () => {
     if (!billing.firstName.trim() || !billing.lastName.trim()) {
       toast.error("Please enter your first and last name.");
@@ -102,10 +127,36 @@ function CheckoutPage() {
       onSuccess: (created) => {
         queryClient.invalidateQueries({ queryKey: queryKeys.cart });
         setOrder(created);
+
+        const provider = USE_MOCK_PROVIDER ? "mock" : "pesaflow";
+
         initiate.mutate(
-          { order_id: created.id, provider: "mock" },
           {
-            onSuccess: (p) => setPayment(p),
+            order_id: created.id,
+            provider,
+            ...(provider === "pesaflow"
+              ? {
+                  billing: {
+                    first_name: billing.firstName,
+                    last_name: billing.lastName,
+                    email: billing.email,
+                    phone: billing.phone,
+                  },
+                }
+              : {}),
+          },
+          {
+            onSuccess: (p) => {
+              setPayment(p);
+
+              // For Pesaflow, redirect to the hosted checkout page
+              if (provider === "pesaflow" && p.checkout_url) {
+                setRedirecting(true);
+                window.location.href = p.checkout_url;
+              } else if (provider === "pesaflow" && p.error) {
+                toast.error(`Payment gateway error: ${p.error}`);
+              }
+            },
             onError: () =>
               toast.error("Order placed, but starting payment failed. Try again below."),
           },
@@ -116,7 +167,32 @@ function CheckoutPage() {
 
   const handleRetryPayment = () => {
     if (!order) return;
-    initiate.mutate({ order_id: order.id, provider: "mock" }, { onSuccess: (p) => setPayment(p) });
+    const provider = USE_MOCK_PROVIDER ? "mock" : "pesaflow";
+    initiate.mutate(
+      {
+        order_id: order.id,
+        provider,
+        ...(provider === "pesaflow"
+          ? {
+              billing: {
+                first_name: billing.firstName,
+                last_name: billing.lastName,
+                email: billing.email,
+                phone: billing.phone,
+              },
+            }
+          : {}),
+      },
+      {
+        onSuccess: (p) => {
+          setPayment(p);
+          if (provider === "pesaflow" && p.checkout_url) {
+            setRedirecting(true);
+            window.location.href = p.checkout_url;
+          }
+        },
+      },
+    );
   };
 
   const handleSimulate = (outcome: "success" | "failure") => {
@@ -134,14 +210,53 @@ function CheckoutPage() {
     );
   };
 
-  if (order && paid) return <SuccessScreen order={order} />;
-  if (order) {
+  // Show success screen if payment completed (either via Pesaflow redirect or mock simulate)
+  if (paid || searchParams.payment === "success") {
+    return (
+      <SuccessScreen
+        order={order}
+        orderNumber={searchParams.order}
+      />
+    );
+  }
+
+  // Redirecting to Pesaflow...
+  if (redirecting) {
+    return (
+      <SiteShell>
+        <div className="mx-auto max-w-md px-4 py-24 md:px-8">
+          <div className="border border-border bg-paper-warm p-8 text-center">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+            <p className="mt-4 font-display text-xl">Redirecting to payment…</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              You'll be taken to the secure Pesaflow checkout page.
+            </p>
+          </div>
+        </div>
+      </SiteShell>
+    );
+  }
+
+  // Show mock payment step (dev only)
+  if (order && USE_MOCK_PROVIDER) {
     return (
       <PaymentStep
         order={order}
         isInitiating={initiate.isPending}
         isSimulating={simulate.isPending}
         onSimulate={handleSimulate}
+        onRetry={handleRetryPayment}
+      />
+    );
+  }
+
+  // Show payment pending/failed state for Pesaflow (after returning from failed payment)
+  if (order && payment) {
+    return (
+      <PesaflowPendingStep
+        order={order}
+        payment={payment}
+        isRetrying={initiate.isPending}
         onRetry={handleRetryPayment}
       />
     );
@@ -189,18 +304,31 @@ function CheckoutPage() {
               </div>
             </section>
 
-            {/* Payment */}
+            {/* Payment method */}
             <section>
               <SectionTitle n="02" title="Payment method" />
               <div className="mt-4 flex items-center gap-3 border border-ink bg-background p-4 ring-1 ring-ink">
                 <div className="min-w-0 flex-1">
-                  <p className="font-display text-lg">eCitizen</p>
-                  <p className="text-xs text-muted-foreground">Government payment portal</p>
+                  <p className="font-display text-lg">
+                    {USE_MOCK_PROVIDER ? "Mock Gateway" : "Pesaflow"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {USE_MOCK_PROVIDER
+                      ? "Development testing mode"
+                      : "M-Pesa, Visa, Mastercard & bank transfer"}
+                  </p>
                 </div>
-                <div className="h-8 w-14 border border-border bg-paper-warm grid place-items-center text-[0.6rem] font-semibold uppercase tracking-widest text-muted-foreground">
-                  Logo
+                <div className="grid h-8 w-14 place-items-center border border-border bg-paper-warm text-[0.6rem] font-semibold uppercase tracking-widest text-muted-foreground">
+                  {USE_MOCK_PROVIDER ? "DEV" : (
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  )}
                 </div>
               </div>
+              {!USE_MOCK_PROVIDER && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  You'll be redirected to Pesaflow's secure checkout page to complete payment.
+                </p>
+              )}
             </section>
 
             {/* Billing */}
@@ -307,10 +435,85 @@ function CheckoutPage() {
                   : `Pay ${formatKES(cart?.total ?? 0)}`}
               </Button>
               <p className="mt-3 text-center text-xs text-muted-foreground">
-                Secured with TLS 1.3 · PCI DSS compliant
+                {USE_MOCK_PROVIDER
+                  ? "Mock payment — development mode"
+                  : "Secured by Pesaflow · TLS 1.3 encrypted"}
               </p>
             </div>
           </aside>
+        </div>
+      </div>
+    </SiteShell>
+  );
+}
+
+/**
+ * Pesaflow payment pending/retry step: shown when the user returns from
+ * Pesaflow after a failed or abandoned payment. Offers a retry button.
+ */
+function PesaflowPendingStep({
+  order,
+  payment,
+  isRetrying,
+  onRetry,
+}: {
+  order: OrderOut;
+  payment: PaymentOut;
+  isRetrying: boolean;
+  onRetry: () => void;
+}) {
+  const isFailed = payment.status === "failed";
+  return (
+    <SiteShell>
+      <div className="mx-auto max-w-md px-4 py-24 md:px-8">
+        <div className="border border-border bg-paper-warm p-8 text-center">
+          {isFailed ? (
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-destructive/10 text-destructive">
+              <XCircle className="h-6 w-6" />
+            </div>
+          ) : (
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+          )}
+          <p className="mt-4 font-display text-2xl">
+            {isFailed ? "Payment unsuccessful" : "Payment pending"}
+          </p>
+          <p className="mt-3 font-display text-3xl tabular-nums">{formatKES(order.total)}</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Order {order.order_number}
+          </p>
+          {isFailed && (
+            <p className="mt-3 text-sm text-muted-foreground">
+              No charge was made. Your order is still open — you can try again.
+            </p>
+          )}
+          <div className="mt-8 space-y-2">
+            <Button
+              className="w-full rounded-none bg-flag-green text-paper hover:bg-flag-green/90"
+              size="lg"
+              onClick={onRetry}
+              disabled={isRetrying}
+            >
+              {isRetrying ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Starting payment…
+                </>
+              ) : (
+                <>
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  {isFailed ? "Try again" : "Complete payment"}
+                </>
+              )}
+            </Button>
+            <Button
+              className="w-full rounded-none"
+              variant="outline"
+              size="lg"
+              asChild
+            >
+              <Link to="/browse">Continue browsing</Link>
+            </Button>
+          </div>
         </div>
       </div>
     </SiteShell>
@@ -383,7 +586,16 @@ function PaymentStep({
   );
 }
 
-function SuccessScreen({ order }: { order: OrderOut }) {
+function SuccessScreen({
+  order,
+  orderNumber,
+}: {
+  order: OrderOut | null;
+  orderNumber?: string;
+}) {
+  const displayOrderNumber = order?.order_number || orderNumber || "—";
+  const displayTotal = order ? formatKES(order.total) : null;
+
   return (
     <SiteShell>
       <div className="mx-auto max-w-2xl px-4 py-24 text-center md:px-8">
@@ -397,11 +609,13 @@ function SuccessScreen({ order }: { order: OrderOut }) {
         </p>
         <div className="mt-8 inline-block border border-border bg-paper-warm px-8 py-6 text-left">
           <p className="eyebrow">Order number</p>
-          <p className="mt-1 font-display text-2xl">{order.id}</p>
-          <p className="mt-3 text-sm text-muted-foreground">
-            Total paid{" "}
-            <span className="tabular-nums text-foreground">{formatKES(order.total)}</span>
-          </p>
+          <p className="mt-1 font-display text-2xl">{displayOrderNumber}</p>
+          {displayTotal && (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Total paid{" "}
+              <span className="tabular-nums text-foreground">{displayTotal}</span>
+            </p>
+          )}
         </div>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Button asChild size="lg" className="rounded-none bg-ink text-paper hover:bg-ink/90">

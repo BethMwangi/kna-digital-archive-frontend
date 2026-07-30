@@ -8,13 +8,22 @@ function fixPayment(payment: PaymentOut): PaymentOut {
   };
 }
 
-export interface InitiatePaymentInput {
-  order_id: string;
-  /** Only "mock" exists today — a real gateway integration would add more. */
-  provider: "mock";
+export interface BillingDetails {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
 }
 
-/** POST /payments/initiate/ — creates a Payment; `simulate_url` is the mock gateway's own test page. */
+export interface InitiatePaymentInput {
+  order_id: string;
+  /** "pesaflow" for real payments; "mock" for local dev/testing. */
+  provider: "pesaflow" | "mock";
+  /** Required for Pesaflow — forwarded to the gateway for the invoice. */
+  billing?: BillingDetails;
+}
+
+/** POST /payments/initiate/ — creates a Payment; for Pesaflow returns `checkout_url` to redirect to. */
 export async function initiatePayment(input: InitiatePaymentInput): Promise<PaymentOut> {
   const data = await apiClient.post<PaymentOut>("/payments/initiate/", input);
   return fixPayment(data);
