@@ -13,6 +13,10 @@ export interface BillingDetails {
   last_name: string;
   email: string;
   phone: string;
+  /** National ID/passport number — Pesaflow's iframe API requires this (clientIDNumber);
+   *  the backend serializer accepts it blank but rejects the *request* when provider is
+   *  "pesaflow" and it's missing (see InitiatePaymentSerializer.validate()). */
+  id_number?: string;
 }
 
 export interface InitiatePaymentInput {

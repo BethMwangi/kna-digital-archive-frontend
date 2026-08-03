@@ -44,6 +44,8 @@ interface BillingDetails {
   lastName: string;
   email: string;
   phone: string;
+  /** National ID/passport number — required by Pesaflow's iframe API (clientIDNumber). */
+  idNumber: string;
   organisation: string;
   address: string;
   city: string;
@@ -55,6 +57,7 @@ const EMPTY_BILLING: BillingDetails = {
   lastName: "",
   email: "",
   phone: "",
+  idNumber: "",
   organisation: "",
   address: "",
   city: "",
@@ -73,6 +76,7 @@ function CheckoutPage() {
     lastName: user?.last_name || "",
     email: user?.email || "",
     phone: user?.phone_number || "",
+    idNumber: "",
     organisation: "",
     address: "",
     city: "",
@@ -104,6 +108,35 @@ function CheckoutPage() {
     }
   }, [searchParams.payment, queryClient]);
 
+  // Pesaflow's iframe API requires clientIDNumber (billing.id_number below) —
+  // the mock provider never touches Pesaflow, so it's the only exemption.
+  const provider: "mock" | "pesaflow" = USE_MOCK_PROVIDER ? "mock" : "pesaflow";
+
+  function buildBillingPayload() {
+    return {
+      first_name: billing.firstName,
+      last_name: billing.lastName,
+      email: billing.email,
+      phone: billing.phone,
+      id_number: billing.idNumber,
+    };
+  }
+
+  // Even when Pesaflow rejects the payment, POST /payments/initiate/ still
+  // returns 201 — the failure shows up as payment.status === "failed" (with
+  // payment.error as the human-readable reason), not as a 4xx/5xx. Branching
+  // on HTTP success alone would misread a failed payment as a success and
+  // try to redirect to an empty checkout_url, so this checks status first.
+  function handlePaymentResult(p: PaymentOut) {
+    setPayment(p);
+    if (provider === "pesaflow" && p.checkout_url) {
+      setRedirecting(true);
+      window.location.href = p.checkout_url;
+    } else if (provider === "pesaflow" && p.status === "failed") {
+      toast.error(p.error ? `Payment gateway error: ${p.error}` : "Payment could not be started.");
+    }
+  }
+
   const handleCheckout = () => {
     if (!billing.firstName.trim() || !billing.lastName.trim()) {
       toast.error("Please enter your first and last name.");
@@ -117,6 +150,10 @@ function CheckoutPage() {
       toast.error("Please enter a phone number.");
       return;
     }
+    if (provider === "pesaflow" && !billing.idNumber.trim()) {
+      toast.error("Please enter your national ID or passport number.");
+      return;
+    }
     if (!agreedToTerms) {
       setTermsError(true);
       toast.error("Please agree to the licensing terms to continue.");
@@ -128,35 +165,14 @@ function CheckoutPage() {
         queryClient.invalidateQueries({ queryKey: queryKeys.cart });
         setOrder(created);
 
-        const provider = USE_MOCK_PROVIDER ? "mock" : "pesaflow";
-
         initiate.mutate(
           {
             order_id: created.id,
             provider,
-            ...(provider === "pesaflow"
-              ? {
-                  billing: {
-                    first_name: billing.firstName,
-                    last_name: billing.lastName,
-                    email: billing.email,
-                    phone: billing.phone,
-                  },
-                }
-              : {}),
+            ...(provider === "pesaflow" ? { billing: buildBillingPayload() } : {}),
           },
           {
-            onSuccess: (p) => {
-              setPayment(p);
-
-              // For Pesaflow, redirect to the hosted checkout page
-              if (provider === "pesaflow" && p.checkout_url) {
-                setRedirecting(true);
-                window.location.href = p.checkout_url;
-              } else if (provider === "pesaflow" && p.error) {
-                toast.error(`Payment gateway error: ${p.error}`);
-              }
-            },
+            onSuccess: handlePaymentResult,
             onError: () =>
               toast.error("Order placed, but starting payment failed. Try again below."),
           },
@@ -167,30 +183,19 @@ function CheckoutPage() {
 
   const handleRetryPayment = () => {
     if (!order) return;
-    const provider = USE_MOCK_PROVIDER ? "mock" : "pesaflow";
+    if (provider === "pesaflow" && !billing.idNumber.trim()) {
+      toast.error("Please enter your national ID or passport number.");
+      return;
+    }
     initiate.mutate(
       {
         order_id: order.id,
         provider,
-        ...(provider === "pesaflow"
-          ? {
-              billing: {
-                first_name: billing.firstName,
-                last_name: billing.lastName,
-                email: billing.email,
-                phone: billing.phone,
-              },
-            }
-          : {}),
+        ...(provider === "pesaflow" ? { billing: buildBillingPayload() } : {}),
       },
       {
-        onSuccess: (p) => {
-          setPayment(p);
-          if (provider === "pesaflow" && p.checkout_url) {
-            setRedirecting(true);
-            window.location.href = p.checkout_url;
-          }
-        },
+        onSuccess: handlePaymentResult,
+        onError: () => toast.error("Couldn't reach the payment gateway. Try again."),
       },
     );
   };
@@ -359,6 +364,13 @@ function CheckoutPage() {
                   required
                   value={billing.phone}
                   onChange={(e) => setBilling((b) => ({ ...b, phone: e.target.value }))}
+                />
+                <Field
+                  label="National ID / passport"
+                  required={!USE_MOCK_PROVIDER}
+                  className="sm:col-span-2"
+                  value={billing.idNumber}
+                  onChange={(e) => setBilling((b) => ({ ...b, idNumber: e.target.value }))}
                 />
                 <Field
                   label="Organisation (optional)"

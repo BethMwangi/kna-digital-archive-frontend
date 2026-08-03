@@ -101,9 +101,6 @@ export function BrowsePage() {
   const searchQuery = useAssetSearch({ page, q: q || "", ...filterParams });
 
   const { data, isPending, isError, isFetching } = hasQ ? searchQuery : assetsQuery;
-  // "fuzzy" means the literal query matched nothing and this is a
-  // typo-corrected best guess — worth telling the user why results differ
-  // from what they typed.
   const fuzzyMatch = hasQ && searchQuery.data?.match_type === "fuzzy";
 
   const { data: categoriesData } = useCategories();
