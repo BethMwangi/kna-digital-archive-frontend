@@ -5,7 +5,7 @@ import { SiteShell } from "@/components/kna/site-shell";
 import { LazyImage } from "@/components/kna/components";
 import { formatKES } from "@/lib/mock-data";
 import { useCart } from "@/hooks/use-cart";
-import { useInitiatePayment, usePayment, useSimulatePayment } from "@/hooks/use-payments";
+import { useInitiatePayment, usePayments, useSimulatePayment } from "@/hooks/use-payments";
 import { checkout } from "@/lib/api/orders";
 import { normalizeKenyanPhone } from "@/components/kna/phone-field";
 import type { OrderOut, PaymentOut } from "@/lib/api/types";
@@ -96,42 +96,52 @@ function CheckoutPage() {
   const initiate = useInitiatePayment();
   const simulate = useSimulatePayment();
 
-  // Handle Pesaflow return redirects (success/failure query params)
+  // Pesaflow's success/fail redirect lands here *inside* our own iframe —
+  // browsers won't let the parent read a cross-origin iframe's location,
+  // but by the time the redirect fires we're same-origin, so this is safe:
+  // break out to the full top-level window instead of rendering the result
+  // page trapped in the 600px embedded box.
   useEffect(() => {
-    if (searchParams.payment === "success") {
+    if (window.top && window.top !== window.self) {
+      window.top.location.href = window.location.href;
+    }
+  }, []);
+
+  // Handle Pesaflow return redirects (success/failure query params). The
+  // query param alone isn't proof of payment — it's just a URL, trivially
+  // guessable/bookmarkable — so this confirms against our own backend
+  // (updated independently by Pesaflow's IPN callback) with a single fetch,
+  // not polling. If that confirmation is inconclusive (e.g. still settling),
+  // it falls back to trusting the redirect rather than leaving the customer
+  // stuck on a spinner after they've actually paid.
+  const { data: returnPayments, isFetched: confirmFetched } = usePayments(
+    searchParams.payment ? searchParams.order : undefined,
+  );
+
+  useEffect(() => {
+    if (!searchParams.payment || !confirmFetched) return;
+    const latest = returnPayments
+      ?.slice()
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+    const status = latest?.status ?? searchParams.payment;
+
+    if (status === "completed" || status === "success") {
       setPaid(true);
-      // Refresh downloads and orders since payment completed externally
       queryClient.invalidateQueries({ queryKey: queryKeys.downloads });
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.list });
       queryClient.invalidateQueries({ queryKey: queryKeys.cart });
-    } else if (searchParams.payment === "failed") {
-      toast.error("Payment was not completed. You can try again.");
+    } else if (status === "failed") {
+      toast.error(
+        latest?.error
+          ? `Payment gateway error: ${latest.error}`
+          : "Payment was not completed. You can try again.",
+      );
     }
-  }, [searchParams.payment, queryClient]);
+  }, [searchParams.payment, confirmFetched, returnPayments, queryClient]);
 
   // Pesaflow's iframe API requires clientIDNumber (billing.id_number below) —
   // the mock provider never touches Pesaflow, so it's the only exemption.
   const provider: "mock" | "pesaflow" = USE_MOCK_PROVIDER ? "mock" : "pesaflow";
-
-  // While the iframe is up, poll the payment record instead of watching the
-  // iframe's own navigation (see usePayment's comment) — Pesaflow's IPN
-  // callback flips payment.status on our backend independent of the iframe.
-  const { data: polledPayment } = usePayment(showIframe ? payment?.id : undefined);
-
-  useEffect(() => {
-    if (!showIframe || !polledPayment) return;
-    if (polledPayment.status === "completed") {
-      setShowIframe(false);
-      setPaid(true);
-      queryClient.invalidateQueries({ queryKey: queryKeys.downloads });
-      queryClient.invalidateQueries({ queryKey: queryKeys.orders.list });
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart });
-    } else if (polledPayment.status === "failed") {
-      setShowIframe(false);
-      setPayment(polledPayment);
-      toast.error("Payment was not completed. You can try again.");
-    }
-  }, [showIframe, polledPayment, queryClient]);
 
   function buildBillingPayload() {
     return {
@@ -239,18 +249,30 @@ function CheckoutPage() {
     );
   };
 
-  // Show success screen if payment completed (either via Pesaflow redirect or mock simulate)
-  if (paid || searchParams.payment === "success") {
+  // Show success screen once confirmed (either via mock simulate, in-page
+  // Pesaflow status, or a confirmed Pesaflow redirect)
+  if (paid) {
+    return <SuccessScreen order={order} orderNumber={searchParams.order} />;
+  }
+
+  // Returned from Pesaflow — confirming against our own backend before
+  // showing anything, so we don't flash the billing form while that
+  // one-shot check is in flight (see the confirm effect above).
+  if (searchParams.payment && !confirmFetched) {
     return (
-      <SuccessScreen
-        order={order}
-        orderNumber={searchParams.order}
-      />
+      <SiteShell>
+        <div className="mx-auto max-w-md px-4 py-24 md:px-8">
+          <div className="border border-border bg-paper-warm p-8 text-center">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+            <p className="mt-4 font-display text-xl">Confirming your payment…</p>
+          </div>
+        </div>
+      </SiteShell>
     );
   }
 
-  // Pesaflow's hosted checkout, embedded — completion is detected by polling
-  // (see usePayment above), not by watching this iframe navigate.
+  // Pesaflow's hosted checkout, embedded — the redirect useEffect above
+  // handles detecting completion, not this component watching the iframe.
   if (showIframe && order && payment?.checkout_url) {
     return (
       <PesaflowIframeStep
@@ -343,9 +365,7 @@ function CheckoutPage() {
                   </p>
                 </div>
                 <div className="grid h-8 w-14 place-items-center border border-border bg-paper-warm text-[0.6rem] font-semibold uppercase tracking-widest text-muted-foreground">
-                  {USE_MOCK_PROVIDER ? "DEV" : (
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  )}
+                  {USE_MOCK_PROVIDER ? "DEV" : <ExternalLink className="h-3.5 w-3.5" />}
                 </div>
               </div>
               {!USE_MOCK_PROVIDER && (
@@ -481,11 +501,11 @@ function CheckoutPage() {
 /**
  * Pesaflow's hosted checkout page, embedded in an iframe (per the backend's
  * PesaflowGateway.create_invoice — format="iframe" returns working checkout
- * HTML directly, served back through our own /payments/{id}/checkout-frame/
- * endpoint since the secureHash means this has to stay server-side). The
- * parent page polls the payment record (usePayment) rather than watching
- * this iframe navigate, so there's no "onSuccess" callback here — the
- * checkout page just disappears once CheckoutPage's poll detects completion.
+ * HTML directly). The customer picks a payment method, triggers an STK
+ * push, pays, and Pesaflow eventually redirects *inside this iframe* to
+ * callBackURLOnSuccess — our own /checkout route, which busts out to the
+ * top-level window and confirms the real status there (see the two
+ * useEffects in CheckoutPage). Nothing here watches the iframe directly.
  */
 function PesaflowIframeStep({
   order,
@@ -503,10 +523,6 @@ function PesaflowIframeStep({
           <div>
             <p className="text-sm font-medium">Order {order.order_number}</p>
             <p className="text-xs text-muted-foreground">{formatKES(order.total)}</p>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            Waiting for payment confirmation…
           </div>
         </div>
         <div className="mt-4 border border-border">
@@ -560,9 +576,7 @@ function PesaflowPendingStep({
             {isFailed ? "Payment unsuccessful" : "Payment pending"}
           </p>
           <p className="mt-3 font-display text-3xl tabular-nums">{formatKES(order.total)}</p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Order {order.order_number}
-          </p>
+          <p className="mt-2 text-sm text-muted-foreground">Order {order.order_number}</p>
           {isFailed && (
             <p className="mt-3 text-sm text-muted-foreground">
               No charge was made. Your order is still open — you can try again.
@@ -587,12 +601,7 @@ function PesaflowPendingStep({
                 </>
               )}
             </Button>
-            <Button
-              className="w-full rounded-none"
-              variant="outline"
-              size="lg"
-              asChild
-            >
+            <Button className="w-full rounded-none" variant="outline" size="lg" asChild>
               <Link to="/browse">Continue browsing</Link>
             </Button>
           </div>
@@ -668,13 +677,7 @@ function PaymentStep({
   );
 }
 
-function SuccessScreen({
-  order,
-  orderNumber,
-}: {
-  order: OrderOut | null;
-  orderNumber?: string;
-}) {
+function SuccessScreen({ order, orderNumber }: { order: OrderOut | null; orderNumber?: string }) {
   const displayOrderNumber = order?.order_number || orderNumber || "—";
   const displayTotal = order ? formatKES(order.total) : null;
 
@@ -694,8 +697,7 @@ function SuccessScreen({
           <p className="mt-1 font-display text-2xl">{displayOrderNumber}</p>
           {displayTotal && (
             <p className="mt-3 text-sm text-muted-foreground">
-              Total paid{" "}
-              <span className="tabular-nums text-foreground">{displayTotal}</span>
+              Total paid <span className="tabular-nums text-foreground">{displayTotal}</span>
             </p>
           )}
         </div>
