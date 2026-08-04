@@ -36,10 +36,22 @@ export function usePayments(orderId?: string) {
   });
 }
 
+/**
+ * While a Pesaflow checkout is embedded in an iframe, its success/fail
+ * redirect happens *inside* the iframe — same-origin policy means the
+ * parent page can't read that navigation. Polling this instead works
+ * regardless: Pesaflow's IPN callback updates the payment record on our
+ * backend directly, independent of whatever the iframe itself is doing.
+ * Stops once the payment reaches a terminal state.
+ */
 export function usePayment(id: string | undefined) {
   return useQuery({
     queryKey: queryKeys.payments.detail(id ?? ""),
     queryFn: () => getPayment(id!),
     enabled: Boolean(id),
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "completed" || status === "failed" ? false : 3000;
+    },
   });
 }

@@ -5,7 +5,7 @@ import { SiteShell } from "@/components/kna/site-shell";
 import { LazyImage } from "@/components/kna/components";
 import { formatKES } from "@/lib/mock-data";
 import { useCart } from "@/hooks/use-cart";
-import { useInitiatePayment, useSimulatePayment } from "@/hooks/use-payments";
+import { useInitiatePayment, usePayment, useSimulatePayment } from "@/hooks/use-payments";
 import { checkout } from "@/lib/api/orders";
 import { normalizeKenyanPhone } from "@/components/kna/phone-field";
 import type { OrderOut, PaymentOut } from "@/lib/api/types";
@@ -70,7 +70,7 @@ function CheckoutPage() {
   const [order, setOrder] = useState<OrderOut | null>(null);
   const [payment, setPayment] = useState<PaymentOut | null>(null);
   const [paid, setPaid] = useState(false);
-  const [redirecting, setRedirecting] = useState(false);
+  const [showIframe, setShowIframe] = useState(false);
   const { user } = useAuth();
   const [billing, setBilling] = useState<BillingDetails>(() => ({
     firstName: user?.first_name || "",
@@ -113,6 +113,26 @@ function CheckoutPage() {
   // the mock provider never touches Pesaflow, so it's the only exemption.
   const provider: "mock" | "pesaflow" = USE_MOCK_PROVIDER ? "mock" : "pesaflow";
 
+  // While the iframe is up, poll the payment record instead of watching the
+  // iframe's own navigation (see usePayment's comment) — Pesaflow's IPN
+  // callback flips payment.status on our backend independent of the iframe.
+  const { data: polledPayment } = usePayment(showIframe ? payment?.id : undefined);
+
+  useEffect(() => {
+    if (!showIframe || !polledPayment) return;
+    if (polledPayment.status === "completed") {
+      setShowIframe(false);
+      setPaid(true);
+      queryClient.invalidateQueries({ queryKey: queryKeys.downloads });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.list });
+      queryClient.invalidateQueries({ queryKey: queryKeys.cart });
+    } else if (polledPayment.status === "failed") {
+      setShowIframe(false);
+      setPayment(polledPayment);
+      toast.error("Payment was not completed. You can try again.");
+    }
+  }, [showIframe, polledPayment, queryClient]);
+
   function buildBillingPayload() {
     return {
       first_name: billing.firstName,
@@ -131,12 +151,11 @@ function CheckoutPage() {
   // returns 201 — the failure shows up as payment.status === "failed" (with
   // payment.error as the human-readable reason), not as a 4xx/5xx. Branching
   // on HTTP success alone would misread a failed payment as a success and
-  // try to redirect to an empty checkout_url, so this checks status first.
+  // try to embed an empty checkout_url, so this checks status first.
   function handlePaymentResult(p: PaymentOut) {
     setPayment(p);
     if (provider === "pesaflow" && p.checkout_url) {
-      setRedirecting(true);
-      window.location.href = p.checkout_url;
+      setShowIframe(true);
     } else if (provider === "pesaflow" && p.status === "failed") {
       toast.error(p.error ? `Payment gateway error: ${p.error}` : "Payment could not be started.");
     }
@@ -230,20 +249,15 @@ function CheckoutPage() {
     );
   }
 
-  // Redirecting to Pesaflow...
-  if (redirecting) {
+  // Pesaflow's hosted checkout, embedded — completion is detected by polling
+  // (see usePayment above), not by watching this iframe navigate.
+  if (showIframe && order && payment?.checkout_url) {
     return (
-      <SiteShell>
-        <div className="mx-auto max-w-md px-4 py-24 md:px-8">
-          <div className="border border-border bg-paper-warm p-8 text-center">
-            <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
-            <p className="mt-4 font-display text-xl">Redirecting to payment…</p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              You'll be taken to the secure Pesaflow checkout page.
-            </p>
-          </div>
-        </div>
-      </SiteShell>
+      <PesaflowIframeStep
+        order={order}
+        checkoutUrl={payment.checkout_url}
+        onCancel={() => setShowIframe(false)}
+      />
     );
   }
 
@@ -336,7 +350,7 @@ function CheckoutPage() {
               </div>
               {!USE_MOCK_PROVIDER && (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  You'll be redirected to Pesaflow's secure checkout page to complete payment.
+                  Pesaflow's secure checkout page opens here on this page to complete payment.
                 </p>
               )}
             </section>
@@ -459,6 +473,57 @@ function CheckoutPage() {
             </div>
           </aside>
         </div>
+      </div>
+    </SiteShell>
+  );
+}
+
+/**
+ * Pesaflow's hosted checkout page, embedded in an iframe (per the backend's
+ * PesaflowGateway.create_invoice — format="iframe" returns working checkout
+ * HTML directly, served back through our own /payments/{id}/checkout-frame/
+ * endpoint since the secureHash means this has to stay server-side). The
+ * parent page polls the payment record (usePayment) rather than watching
+ * this iframe navigate, so there's no "onSuccess" callback here — the
+ * checkout page just disappears once CheckoutPage's poll detects completion.
+ */
+function PesaflowIframeStep({
+  order,
+  checkoutUrl,
+  onCancel,
+}: {
+  order: OrderOut;
+  checkoutUrl: string;
+  onCancel: () => void;
+}) {
+  return (
+    <SiteShell>
+      <div className="mx-auto max-w-2xl px-4 py-12 md:px-8">
+        <div className="flex items-center justify-between border border-border bg-paper-warm p-4">
+          <div>
+            <p className="text-sm font-medium">Order {order.order_number}</p>
+            <p className="text-xs text-muted-foreground">{formatKES(order.total)}</p>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Waiting for payment confirmation…
+          </div>
+        </div>
+        <div className="mt-4 border border-border">
+          <iframe
+            src={checkoutUrl}
+            title="Pesaflow secure checkout"
+            width="100%"
+            height={600}
+            className="block w-full"
+          />
+        </div>
+        <button
+          onClick={onCancel}
+          className="mt-4 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+        >
+          Cancel and edit billing details
+        </button>
       </div>
     </SiteShell>
   );
