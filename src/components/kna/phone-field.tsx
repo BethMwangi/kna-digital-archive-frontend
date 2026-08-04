@@ -8,6 +8,21 @@ interface PhoneFieldProps<T extends FieldValues> {
   label?: string;
 }
 
+/**
+ * Kenyans naturally type their number with the leading 0 (e.g. "0727029973")
+ * — normalize that away before prefixing +254, otherwise it becomes
+ * "+2540727029973" (13 digits, one too many) instead of "+254727029973".
+ * Also strips a redundant "254" if it's already there, so pasted E.164/local
+ * numbers both land on the same canonical form. Pesaflow's clientMSISDN is
+ * strict about this (BigInt, e.g. 25472222222) and 422s on the malformed shape.
+ */
+export function normalizeKenyanPhone(raw: string): string {
+  let digits = raw.replace(/[^0-9]/g, "");
+  if (digits.startsWith("254")) digits = digits.slice(3);
+  digits = digits.replace(/^0+/, "");
+  return digits ? `+254${digits}` : "";
+}
+
 /** Kenyan phone input: user types the local number, field value is stored/submitted as full +254E.164. */
 export function PhoneField<T extends FieldValues>({
   control,
@@ -32,10 +47,7 @@ export function PhoneField<T extends FieldValues>({
                   className="rounded-none"
                   placeholder="712 000 000"
                   value={local}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/[^0-9]/g, "");
-                    field.onChange(digits ? `+254${digits}` : "");
-                  }}
+                  onChange={(e) => field.onChange(normalizeKenyanPhone(e.target.value))}
                   onBlur={field.onBlur}
                 />
               </FormControl>

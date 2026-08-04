@@ -7,6 +7,7 @@ import { formatKES } from "@/lib/mock-data";
 import { useCart } from "@/hooks/use-cart";
 import { useInitiatePayment, useSimulatePayment } from "@/hooks/use-payments";
 import { checkout } from "@/lib/api/orders";
+import { normalizeKenyanPhone } from "@/components/kna/phone-field";
 import type { OrderOut, PaymentOut } from "@/lib/api/types";
 import { queryKeys } from "@/lib/api/query-keys";
 import { RequireAuth } from "@/lib/auth/protected-route";
@@ -117,7 +118,11 @@ function CheckoutPage() {
       first_name: billing.firstName,
       last_name: billing.lastName,
       email: billing.email,
-      phone: billing.phone,
+      // Re-normalized here (not just at input time) because billing.phone can
+      // still be a pre-existing malformed value pulled straight from the
+      // user's stored profile (e.g. "+2540727029973") — Pesaflow's
+      // clientMSISDN 422s on anything but a clean 254 + 9-digit shape.
+      phone: normalizeKenyanPhone(billing.phone),
       id_number: billing.idNumber,
     };
   }
@@ -146,8 +151,8 @@ function CheckoutPage() {
       toast.error("Please enter a valid email address.");
       return;
     }
-    if (!billing.phone.trim()) {
-      toast.error("Please enter a phone number.");
+    if (!/^\+254\d{9}$/.test(normalizeKenyanPhone(billing.phone))) {
+      toast.error("Please enter a valid Kenyan phone number, e.g. 0712 345 678.");
       return;
     }
     if (provider === "pesaflow" && !billing.idNumber.trim()) {
