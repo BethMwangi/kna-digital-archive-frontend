@@ -90,14 +90,15 @@ function Downloads() {
                     <LicenseBadge type={d.license_name as never} />
                   </TableCell>
                   <TableCell className="tabular-nums text-sm">
-                    {Math.max(0, d.max_downloads - d.download_count)} of {d.max_downloads}
+                    {d.downloads_remaining ?? Math.max(0, d.max_downloads - d.download_count)} of{" "}
+                    {d.max_downloads}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button
                       size="sm"
                       className="rounded-none bg-ink text-paper hover:bg-ink/90"
                       onClick={() => handleDownload(d.id)}
-                      disabled={downloadLink.isPending || d.download_count >= d.max_downloads}
+                      disabled={downloadLink.isPending || d.can_download === false}
                     >
                       <Download className="mr-1.5 h-3 w-3" /> Download
                     </Button>
