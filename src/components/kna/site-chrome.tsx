@@ -35,9 +35,9 @@ export function SiteHeader() {
           >
             Collections
           </Link>
-          <a href="#" className="text-foreground/80 hover:text-foreground">
+          <Link to="/licensing" className="text-foreground/80 hover:text-foreground">
             Licensing
-          </a>
+          </Link>
           <a href="#" className="text-foreground/80 hover:text-foreground">
             About
           </a>

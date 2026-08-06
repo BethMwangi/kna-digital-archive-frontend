@@ -25,6 +25,7 @@ function toCard(a: AssetListItem): AssetCardData {
     image: a.thumbnail,
     year: a.publication_date?.slice(0, 4) ?? a.created_at.slice(0, 4),
     category: a.category?.name ?? "Uncategorised",
+    priceFrom: a.price,
   };
 }
 

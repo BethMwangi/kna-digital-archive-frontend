@@ -16,7 +16,6 @@ import { useAsset, useAssets, useLicenses } from "@/hooks/use-assets";
 import { useAddToCart } from "@/hooks/use-cart";
 import { ApiError } from "@/lib/api/client";
 import type { AssetListItem } from "@/lib/api/types";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
@@ -48,6 +47,7 @@ function toCard(a: AssetListItem): AssetCardData {
     image: a.thumbnail,
     year: a.publication_date?.slice(0, 4) ?? a.created_at.slice(0, 4),
     category: a.category?.name ?? "Uncategorised",
+    priceFrom: a.price,
   };
 }
 
@@ -250,12 +250,13 @@ function RealAssetDetail({ id }: { id: string }) {
   const { data: asset, isPending, isError } = useAsset(id);
   const { data: assetsPage } = useAssets({ page: 1 });
   const { data: licenses } = useLicenses();
-  const [licenseId, setLicenseId] = useState<string>();
   const [side, setSide] = useState<"front" | "back">("front");
   const addToCart = useAddToCart();
   const navigate = useNavigate();
 
-  const selectedLicenseId = licenseId ?? licenses?.[0]?.id;
+  // No customer-facing license choice — always the account's first (only)
+  // license type, picked implicitly so checkout still has one to attach.
+  const selectedLicenseId = licenses?.[0]?.id;
 
   if (isPending) {
     return (
@@ -439,31 +440,6 @@ function RealAssetDetail({ id }: { id: string }) {
             <p className="mt-1 text-xs text-muted-foreground">
               Prices in Kenya Shillings, inclusive of VAT.
             </p>
-
-            <div className="mt-6">
-              <p className="eyebrow mb-3">Choose license</p>
-              <RadioGroup
-                value={selectedLicenseId}
-                onValueChange={setLicenseId}
-                className="space-y-2"
-              >
-                {(licenses ?? []).map((l) => (
-                  <label
-                    key={l.id}
-                    htmlFor={`lic-${l.id}`}
-                    className="flex cursor-pointer items-start gap-3 border border-border bg-background p-3 has-[[data-state=checked]]:border-ink has-[[data-state=checked]]:ring-1 has-[[data-state=checked]]:ring-ink"
-                  >
-                    <RadioGroupItem id={`lic-${l.id}`} value={l.id} className="mt-1" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <Badge variant="outline">{l.name}</Badge>
-                      </div>
-                      <p className="mt-2 text-xs text-muted-foreground">{l.description}</p>
-                    </div>
-                  </label>
-                ))}
-              </RadioGroup>
-            </div>
 
             <Button
               className="mt-6 w-full rounded-none bg-flag-green text-paper hover:bg-flag-green/90"

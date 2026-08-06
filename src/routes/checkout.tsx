@@ -10,8 +10,9 @@ import { checkout } from "@/lib/api/orders";
 import { normalizeKenyanPhone } from "@/components/kna/phone-field";
 import type { OrderOut, PaymentOut } from "@/lib/api/types";
 import { queryKeys } from "@/lib/api/query-keys";
-import { RequireAuth } from "@/lib/auth/protected-route";
 import { useAuth } from "@/lib/auth/use-auth";
+import { useLogin, useRegister } from "@/hooks/use-auth-mutations";
+import { ApiError } from "@/lib/api/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,11 +34,7 @@ export const Route = createFileRoute("/checkout")({
     order: (search.order as string) || undefined,
   }),
   head: () => ({ meta: [{ title: "Checkout — Urithi Digital Archive" }] }),
-  component: () => (
-    <RequireAuth>
-      <CheckoutPage />
-    </RequireAuth>
-  ),
+  component: CheckoutPage,
 });
 
 interface BillingDetails {
@@ -47,6 +44,8 @@ interface BillingDetails {
   phone: string;
   /** National ID/passport number — required by Pesaflow's iframe API (clientIDNumber). */
   idNumber: string;
+  /** Only collected/used for guests — becomes their account password (see handleCheckout). */
+  password: string;
   organisation: string;
   address: string;
   city: string;
@@ -59,6 +58,7 @@ const EMPTY_BILLING: BillingDetails = {
   email: "",
   phone: "",
   idNumber: "",
+  password: "",
   organisation: "",
   address: "",
   city: "",
@@ -71,13 +71,14 @@ function CheckoutPage() {
   const [payment, setPayment] = useState<PaymentOut | null>(null);
   const [paid, setPaid] = useState(false);
   const [showIframe, setShowIframe] = useState(false);
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [billing, setBilling] = useState<BillingDetails>(() => ({
     firstName: user?.first_name || "",
     lastName: user?.last_name || "",
     email: user?.email || "",
     phone: user?.phone_number || "",
     idNumber: "",
+    password: "",
     organisation: "",
     address: "",
     city: "",
@@ -85,6 +86,7 @@ function CheckoutPage() {
   }));
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [termsError, setTermsError] = useState(false);
+  const [accountExistsError, setAccountExistsError] = useState(false);
   const { data: cart, isPending } = useCart();
   const items = cart?.items ?? [];
   const queryClient = useQueryClient();
@@ -95,6 +97,8 @@ function CheckoutPage() {
   });
   const initiate = useInitiatePayment();
   const simulate = useSimulatePayment();
+  const register = useRegister();
+  const login = useLogin();
 
   // Pesaflow's success/fail redirect lands here *inside* our own iframe —
   // browsers won't let the parent read a cross-origin iframe's location,
@@ -171,29 +175,7 @@ function CheckoutPage() {
     }
   }
 
-  const handleCheckout = () => {
-    if (!billing.firstName.trim() || !billing.lastName.trim()) {
-      toast.error("Please enter your first and last name.");
-      return;
-    }
-    if (!billing.email.trim() || !billing.email.includes("@")) {
-      toast.error("Please enter a valid email address.");
-      return;
-    }
-    if (!/^\+254\d{9}$/.test(normalizeKenyanPhone(billing.phone))) {
-      toast.error("Please enter a valid Kenyan phone number, e.g. 0712 345 678.");
-      return;
-    }
-    if (provider === "pesaflow" && !billing.idNumber.trim()) {
-      toast.error("Please enter your national ID or passport number.");
-      return;
-    }
-    if (!agreedToTerms) {
-      setTermsError(true);
-      toast.error("Please agree to the licensing terms to continue.");
-      return;
-    }
-
+  function proceedToOrder() {
     placeOrder.mutate(undefined, {
       onSuccess: (created) => {
         queryClient.invalidateQueries({ queryKey: queryKeys.cart });
@@ -213,6 +195,79 @@ function CheckoutPage() {
         );
       },
     });
+  }
+
+  const handleCheckout = () => {
+    setAccountExistsError(false);
+    if (!billing.firstName.trim() || !billing.lastName.trim()) {
+      toast.error("Please enter your first and last name.");
+      return;
+    }
+    if (!billing.email.trim() || !billing.email.includes("@")) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    if (!isAuthenticated && billing.password.length < 8) {
+      toast.error("Please create a password (at least 8 characters) for your account.");
+      return;
+    }
+    if (!/^\+254\d{9}$/.test(normalizeKenyanPhone(billing.phone))) {
+      toast.error("Please enter a valid Kenyan phone number, e.g. 0712 345 678.");
+      return;
+    }
+    if (provider === "pesaflow" && !billing.idNumber.trim()) {
+      toast.error("Please enter your national ID or passport number.");
+      return;
+    }
+    if (!agreedToTerms) {
+      setTermsError(true);
+      toast.error("Please agree to the licensing terms to continue.");
+      return;
+    }
+
+    if (isAuthenticated) {
+      proceedToOrder();
+      return;
+    }
+
+    // No account yet — create one from the billing details they're already
+    // filling in to pay, rather than gating checkout behind a separate
+    // sign-up step. register() doesn't return tokens, so login() runs right
+    // after with the same credentials; its own onSuccess replays the guest
+    // cart into the new server-side cart (see merge-guest-cart.ts) before
+    // proceedToOrder ever runs, so nothing here has to wait on that itself.
+    register.mutate(
+      {
+        first_name: billing.firstName,
+        last_name: billing.lastName,
+        email: billing.email,
+        phone_number: normalizeKenyanPhone(billing.phone),
+        password: billing.password,
+        password_confirm: billing.password,
+      },
+      {
+        onSuccess: () => {
+          login.mutate(
+            { email: billing.email, password: billing.password },
+            {
+              onSuccess: proceedToOrder,
+              onError: () =>
+                toast.error(
+                  "Account created, but signing you in failed. Please try signing in manually.",
+                ),
+            },
+          );
+        },
+        onError: (error) => {
+          if (error instanceof ApiError && error.fieldErrors().email) {
+            setAccountExistsError(true);
+            toast.error("That email already has an account — sign in to continue.");
+            return;
+          }
+          toast.error("Couldn't create your account. Please check your details and try again.");
+        },
+      },
+    );
   };
 
   const handleRetryPayment = () => {
@@ -377,7 +432,26 @@ function CheckoutPage() {
 
             {/* Billing */}
             <section>
-              <SectionTitle n="03" title="Billing details" />
+              <SectionTitle n="03" title={isAuthenticated ? "Billing details" : "Your details"} />
+              {!isAuthenticated && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  No account needed to browse or check out — this also sets up your account, so your
+                  receipt and downloads are waiting for you afterward.
+                </p>
+              )}
+              {accountExistsError && (
+                <div className="mt-4 border border-destructive bg-destructive/5 p-4 text-sm">
+                  That email already has an account.{" "}
+                  <Link
+                    to="/auth/login"
+                    search={{ redirect: "/checkout" } as never}
+                    className="underline underline-offset-4"
+                  >
+                    Sign in
+                  </Link>{" "}
+                  to continue — your cart will still be here.
+                </div>
+              )}
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <Field
                   label="First name"
@@ -398,6 +472,15 @@ function CheckoutPage() {
                   value={billing.email}
                   onChange={(e) => setBilling((b) => ({ ...b, email: e.target.value }))}
                 />
+                {!isAuthenticated && (
+                  <Field
+                    label="Create a password"
+                    type="password"
+                    required
+                    value={billing.password}
+                    onChange={(e) => setBilling((b) => ({ ...b, password: e.target.value }))}
+                  />
+                )}
                 <Field
                   label="Phone"
                   required
@@ -478,12 +561,22 @@ function CheckoutPage() {
                 className="mt-6 w-full rounded-none bg-flag-green text-paper hover:bg-flag-green/90"
                 size="lg"
                 onClick={handleCheckout}
-                disabled={placeOrder.isPending || initiate.isPending || items.length === 0}
+                disabled={
+                  placeOrder.isPending ||
+                  initiate.isPending ||
+                  register.isPending ||
+                  login.isPending ||
+                  items.length === 0
+                }
               >
                 <Lock className="mr-2 h-4 w-4" />
-                {placeOrder.isPending || initiate.isPending
-                  ? "Processing…"
-                  : `Pay ${formatKES(cart?.total ?? 0)}`}
+                {register.isPending
+                  ? "Creating your account…"
+                  : login.isPending
+                    ? "Signing you in…"
+                    : placeOrder.isPending || initiate.isPending
+                      ? "Processing…"
+                      : `Pay ${formatKES(cart?.total ?? 0)}`}
               </Button>
               <p className="mt-3 text-center text-xs text-muted-foreground">
                 {USE_MOCK_PROVIDER
