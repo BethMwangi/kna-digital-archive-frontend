@@ -14,5 +14,8 @@ export async function listDownloads(): Promise<DownloadOut[]> {
  * receipt email links to /account/downloads instead of a raw file URL.
  */
 export function getDownloadLink(id: string): Promise<DownloadLinkOut> {
-  return apiClient.get<DownloadLinkOut>(`/downloads/${id}/link/`);
+  return apiClient.get<DownloadLinkOut>(`/downloads/${id}/link/`).then((link) => ({
+    ...link,
+    url: link.url || link.download_url,
+  }));
 }

@@ -248,13 +248,21 @@ export interface DownloadOut {
   order_number: string;
   download_count: number;
   max_downloads: number;
+  downloads_remaining?: number;
+  can_download?: boolean;
+  external_download_status?: string;
+  external_download_link?: string;
+  external_download_counts?: number | null;
   created_at?: string;
 }
 
 /** GET /downloads/{id}/link/ — a freshly minted signed URL, expires in 15 min. */
 export interface DownloadLinkOut {
   url: string;
+  download_url?: string;
   expires_at?: string;
+  external_status?: string;
+  external_download_counts?: number | null;
 }
 
 /**
