@@ -122,7 +122,11 @@ export function LoginPage({ redirect }: { redirect?: string }) {
 
       <p className="mt-8 text-sm text-muted-foreground">
         New to the archive?{" "}
-        <Link to="/auth/register" className="text-foreground underline underline-offset-4">
+        <Link
+          to="/auth/register"
+          search={{ redirect } as never}
+          className="text-foreground underline underline-offset-4"
+        >
           Create an account
         </Link>
       </p>

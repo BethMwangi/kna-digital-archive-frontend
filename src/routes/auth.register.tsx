@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
+import { z } from "zod";
 import { AlertCircle, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -21,8 +22,19 @@ import { registerSchema, type RegisterFormValues } from "@/lib/validation/auth";
 import { useRegister } from "@/hooks/use-auth-mutations";
 import { applyApiErrorToForm } from "@/lib/api/form-errors";
 
+const searchSchema = z.object({
+  // Where to land after register -> verify -> sign in (e.g. back at
+  // checkout, so a guest who needed an account to pay ends up where they
+  // started, cart intact — see checkout.tsx's handleCheckout).
+  redirect: z.string().optional(),
+  first_name: z.string().optional(),
+  last_name: z.string().optional(),
+  email: z.string().optional(),
+});
+
 export const Route = createFileRoute("/auth/register")({
   head: () => ({ meta: [{ title: "Create account — Urithi Digital Archive" }] }),
+  validateSearch: (search) => searchSchema.parse(search),
   component: RegisterPage,
 });
 
@@ -36,6 +48,7 @@ function strength(pw: string) {
 }
 
 function RegisterPage() {
+  const { redirect, first_name, last_name, email } = Route.useSearch();
   const register = useRegister();
   const navigate = useNavigate();
   const [formError, setFormError] = useState("");
@@ -43,9 +56,9 @@ function RegisterPage() {
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      first_name: "",
-      last_name: "",
-      email: "",
+      first_name: first_name ?? "",
+      last_name: last_name ?? "",
+      email: email ?? "",
       phone_number: "",
       password: "",
       password_confirm: "",
@@ -61,8 +74,11 @@ function RegisterPage() {
     register.mutate(values, {
       // The code to verify with is emailed, not returned here — hand off to
       // /auth/verify with the address prefilled so the user isn't asked to
-      // retype what they just typed.
-      onSuccess: (user) => navigate({ to: "/auth/verify", search: { email: user.email } }),
+      // retype what they just typed. `redirect` rides along so the eventual
+      // sign-in lands back wherever this registration started (see
+      // searchSchema above).
+      onSuccess: (user) =>
+        navigate({ to: "/auth/verify", search: { email: user.email, redirect } }),
       onError: (error) => setFormError(applyApiErrorToForm(error, form.setError)),
     });
   });
@@ -195,7 +211,11 @@ function RegisterPage() {
 
       <p className="mt-8 text-sm text-muted-foreground">
         Already have an account?{" "}
-        <Link to="/auth/login" className="text-foreground underline underline-offset-4">
+        <Link
+          to="/auth/login"
+          search={{ redirect } as never}
+          className="text-foreground underline underline-offset-4"
+        >
           Sign in
         </Link>
       </p>

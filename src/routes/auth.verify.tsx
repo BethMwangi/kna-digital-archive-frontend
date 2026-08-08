@@ -24,6 +24,9 @@ import { applyApiErrorToForm } from "@/lib/api/form-errors";
 
 const searchSchema = z.object({
   email: z.string().optional(),
+  // Carried through from registration so sign-in (after verifying) lands
+  // back wherever this whole flow started — see auth.register.tsx.
+  redirect: z.string().optional(),
 });
 
 export const Route = createFileRoute("/auth/verify")({
@@ -45,7 +48,7 @@ const RESEND_COOLDOWN_S = 30;
  * (closed the tab, opened this page from a bookmark) can still complete it.
  */
 function VerifyEmailPage() {
-  const { email: emailFromSearch } = Route.useSearch();
+  const { email: emailFromSearch, redirect } = Route.useSearch();
   const verifyEmail = useVerifyEmail();
   const resendVerification = useResendVerification();
   const [formError, setFormError] = useState("");
@@ -106,7 +109,9 @@ function VerifyEmailPage() {
           className="mt-8 rounded-none bg-flag-green text-paper hover:bg-flag-green/90"
           size="lg"
         >
-          <Link to="/auth/login">Continue to sign in</Link>
+          <Link to="/auth/login" search={{ redirect } as never}>
+            Continue to sign in
+          </Link>
         </Button>
       </div>
     );
@@ -189,7 +194,11 @@ function VerifyEmailPage() {
       </Button>
 
       <p className="mt-8 text-sm text-muted-foreground">
-        <Link to="/auth/login" className="text-foreground underline underline-offset-4">
+        <Link
+          to="/auth/login"
+          search={{ redirect } as never}
+          className="text-foreground underline underline-offset-4"
+        >
           Back to sign in
         </Link>
       </p>

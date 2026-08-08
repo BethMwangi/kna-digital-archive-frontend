@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { SiteShell } from "@/components/kna/site-shell";
@@ -11,8 +11,6 @@ import { normalizeKenyanPhone } from "@/components/kna/phone-field";
 import type { OrderOut, PaymentOut } from "@/lib/api/types";
 import { queryKeys } from "@/lib/api/query-keys";
 import { useAuth } from "@/lib/auth/use-auth";
-import { useLogin, useRegister } from "@/hooks/use-auth-mutations";
-import { ApiError } from "@/lib/api/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,8 +42,6 @@ interface BillingDetails {
   phone: string;
   /** National ID/passport number — required by Pesaflow's iframe API (clientIDNumber). */
   idNumber: string;
-  /** Only collected/used for guests — becomes their account password (see handleCheckout). */
-  password: string;
   organisation: string;
   address: string;
   city: string;
@@ -58,7 +54,6 @@ const EMPTY_BILLING: BillingDetails = {
   email: "",
   phone: "",
   idNumber: "",
-  password: "",
   organisation: "",
   address: "",
   city: "",
@@ -67,6 +62,7 @@ const EMPTY_BILLING: BillingDetails = {
 
 function CheckoutPage() {
   const searchParams = useSearch({ from: "/checkout" });
+  const navigate = useNavigate();
   const [order, setOrder] = useState<OrderOut | null>(null);
   const [payment, setPayment] = useState<PaymentOut | null>(null);
   const [paid, setPaid] = useState(false);
@@ -78,7 +74,6 @@ function CheckoutPage() {
     email: user?.email || "",
     phone: user?.phone_number || "",
     idNumber: "",
-    password: "",
     organisation: "",
     address: "",
     city: "",
@@ -86,7 +81,6 @@ function CheckoutPage() {
   }));
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [termsError, setTermsError] = useState(false);
-  const [accountExistsError, setAccountExistsError] = useState(false);
   const { data: cart, isPending } = useCart();
   const items = cart?.items ?? [];
   const queryClient = useQueryClient();
@@ -97,8 +91,6 @@ function CheckoutPage() {
   });
   const initiate = useInitiatePayment();
   const simulate = useSimulatePayment();
-  const register = useRegister();
-  const login = useLogin();
 
   // Pesaflow's success/fail redirect lands here *inside* our own iframe —
   // browsers won't let the parent read a cross-origin iframe's location,
@@ -198,17 +190,12 @@ function CheckoutPage() {
   }
 
   const handleCheckout = () => {
-    setAccountExistsError(false);
     if (!billing.firstName.trim() || !billing.lastName.trim()) {
       toast.error("Please enter your first and last name.");
       return;
     }
     if (!billing.email.trim() || !billing.email.includes("@")) {
       toast.error("Please enter a valid email address.");
-      return;
-    }
-    if (!isAuthenticated && billing.password.length < 8) {
-      toast.error("Please create a password (at least 8 characters) for your account.");
       return;
     }
     if (!/^\+254\d{9}$/.test(normalizeKenyanPhone(billing.phone))) {
@@ -230,44 +217,21 @@ function CheckoutPage() {
       return;
     }
 
-    // No account yet — create one from the billing details they're already
-    // filling in to pay, rather than gating checkout behind a separate
-    // sign-up step. register() doesn't return tokens, so login() runs right
-    // after with the same credentials; its own onSuccess replays the guest
-    // cart into the new server-side cart (see merge-guest-cart.ts) before
-    // proceedToOrder ever runs, so nothing here has to wait on that itself.
-    register.mutate(
-      {
+    // No account yet — send them through the real registration flow
+    // (signup form, email verification code, then sign in) rather than
+    // creating one silently. Their guest cart lives in localStorage, so it
+    // survives this whole detour and lands back here once they're signed
+    // in — see the redirect chain: register -> verify -> login -> /checkout.
+    toast.message("Create an account to complete your purchase.");
+    navigate({
+      to: "/auth/register",
+      search: {
+        redirect: "/checkout",
         first_name: billing.firstName,
         last_name: billing.lastName,
         email: billing.email,
-        phone_number: normalizeKenyanPhone(billing.phone),
-        password: billing.password,
-        password_confirm: billing.password,
-      },
-      {
-        onSuccess: () => {
-          login.mutate(
-            { email: billing.email, password: billing.password },
-            {
-              onSuccess: proceedToOrder,
-              onError: () =>
-                toast.error(
-                  "Account created, but signing you in failed. Please try signing in manually.",
-                ),
-            },
-          );
-        },
-        onError: (error) => {
-          if (error instanceof ApiError && error.fieldErrors().email) {
-            setAccountExistsError(true);
-            toast.error("That email already has an account — sign in to continue.");
-            return;
-          }
-          toast.error("Couldn't create your account. Please check your details and try again.");
-        },
-      },
-    );
+      } as never,
+    });
   };
 
   const handleRetryPayment = () => {
@@ -432,25 +396,12 @@ function CheckoutPage() {
 
             {/* Billing */}
             <section>
-              <SectionTitle n="03" title={isAuthenticated ? "Billing details" : "Your details"} />
+              <SectionTitle n="03" title="Billing details" />
               {!isAuthenticated && (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  No account needed to browse or check out — this also sets up your account, so your
-                  receipt and downloads are waiting for you afterward.
+                  You'll create an account (or sign in) with this email when you're ready to pay —
+                  no need to do that up front.
                 </p>
-              )}
-              {accountExistsError && (
-                <div className="mt-4 border border-destructive bg-destructive/5 p-4 text-sm">
-                  That email already has an account.{" "}
-                  <Link
-                    to="/auth/login"
-                    search={{ redirect: "/checkout" } as never}
-                    className="underline underline-offset-4"
-                  >
-                    Sign in
-                  </Link>{" "}
-                  to continue — your cart will still be here.
-                </div>
               )}
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <Field
@@ -472,15 +423,6 @@ function CheckoutPage() {
                   value={billing.email}
                   onChange={(e) => setBilling((b) => ({ ...b, email: e.target.value }))}
                 />
-                {!isAuthenticated && (
-                  <Field
-                    label="Create a password"
-                    type="password"
-                    required
-                    value={billing.password}
-                    onChange={(e) => setBilling((b) => ({ ...b, password: e.target.value }))}
-                  />
-                )}
                 <Field
                   label="Phone"
                   required
@@ -561,22 +503,14 @@ function CheckoutPage() {
                 className="mt-6 w-full rounded-none bg-flag-green text-paper hover:bg-flag-green/90"
                 size="lg"
                 onClick={handleCheckout}
-                disabled={
-                  placeOrder.isPending ||
-                  initiate.isPending ||
-                  register.isPending ||
-                  login.isPending ||
-                  items.length === 0
-                }
+                disabled={placeOrder.isPending || initiate.isPending || items.length === 0}
               >
                 <Lock className="mr-2 h-4 w-4" />
-                {register.isPending
-                  ? "Creating your account…"
-                  : login.isPending
-                    ? "Signing you in…"
-                    : placeOrder.isPending || initiate.isPending
-                      ? "Processing…"
-                      : `Pay ${formatKES(cart?.total ?? 0)}`}
+                {placeOrder.isPending || initiate.isPending
+                  ? "Processing…"
+                  : isAuthenticated
+                    ? `Pay ${formatKES(cart?.total ?? 0)}`
+                    : "Continue to create account"}
               </Button>
               <p className="mt-3 text-center text-xs text-muted-foreground">
                 {USE_MOCK_PROVIDER
