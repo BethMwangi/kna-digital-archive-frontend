@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SiteShell } from "@/components/kna/site-shell";
 import { LazyImage } from "@/components/kna/components";
 import { formatKES } from "@/lib/mock-data";
@@ -8,6 +8,7 @@ import { useCart } from "@/hooks/use-cart";
 import { useInitiatePayment, usePayments, useSimulatePayment } from "@/hooks/use-payments";
 import { checkout } from "@/lib/api/orders";
 import { listDownloads } from "@/lib/api/downloads";
+import { getPayment } from "@/lib/api/payments";
 import { normalizeKenyanPhone } from "@/components/kna/phone-field";
 import type { OrderOut, PaymentOut } from "@/lib/api/types";
 import { queryKeys } from "@/lib/api/query-keys";
@@ -92,6 +93,25 @@ function CheckoutPage() {
   });
   const initiate = useInitiatePayment();
   const simulate = useSimulatePayment();
+  const provider: "mock" | "pesaflow" = USE_MOCK_PROVIDER ? "mock" : "pesaflow";
+
+  const redirectToDownloadOrDownloads = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.downloads }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.list }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.cart }),
+    ]);
+    const downloads = await queryClient.fetchQuery({
+      queryKey: queryKeys.downloads,
+      queryFn: listDownloads,
+    });
+    const download = downloads.find((item) => item.external_download_link);
+    if (download?.external_download_link) {
+      window.location.assign(download.external_download_link);
+      return;
+    }
+    navigate({ to: "/account/downloads" });
+  };
 
   // Pesaflow's success/fail redirect lands here *inside* our own iframe —
   // browsers won't let the parent read a cross-origin iframe's location,
@@ -114,6 +134,12 @@ function CheckoutPage() {
   const { data: returnPayments, isFetched: confirmFetched } = usePayments(
     searchParams.payment ? searchParams.order : undefined,
   );
+  const { data: livePayment } = useQuery({
+    queryKey: queryKeys.payments.detail(payment?.id ?? ""),
+    queryFn: () => getPayment(payment!.id),
+    enabled: provider === "pesaflow" && showIframe && Boolean(payment?.id) && !paid,
+    refetchInterval: 3000,
+  });
 
   useEffect(() => {
     if (!searchParams.payment || !confirmFetched) return;
@@ -124,23 +150,7 @@ function CheckoutPage() {
 
     if (status === "completed" || status === "success") {
       setPaid(true);
-      void (async () => {
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: queryKeys.downloads }),
-          queryClient.invalidateQueries({ queryKey: queryKeys.orders.list }),
-          queryClient.invalidateQueries({ queryKey: queryKeys.cart }),
-        ]);
-        const downloads = await queryClient.fetchQuery({
-          queryKey: queryKeys.downloads,
-          queryFn: listDownloads,
-        });
-        const download = downloads.find((item) => item.external_download_link);
-        if (download?.external_download_link) {
-          window.location.assign(download.external_download_link);
-          return;
-        }
-        navigate({ to: "/account/downloads" });
-      })();
+      void redirectToDownloadOrDownloads();
     } else if (status === "failed") {
       toast.error(
         latest?.error
@@ -148,11 +158,18 @@ function CheckoutPage() {
           : "Payment was not completed. You can try again.",
       );
     }
-  }, [searchParams.payment, confirmFetched, returnPayments, queryClient, navigate]);
+  }, [searchParams.payment, confirmFetched, returnPayments]);
 
-  // Pesaflow's iframe API requires clientIDNumber (billing.id_number below) —
-  // the mock provider never touches Pesaflow, so it's the only exemption.
-  const provider: "mock" | "pesaflow" = USE_MOCK_PROVIDER ? "mock" : "pesaflow";
+  useEffect(() => {
+    if (!livePayment) return;
+    if (livePayment.status === "completed") {
+      setPaid(true);
+      void redirectToDownloadOrDownloads();
+    } else if (livePayment.status === "failed") {
+      setShowIframe(false);
+      toast.error("Payment was not completed. You can try again.");
+    }
+  }, [livePayment]);
 
   function buildBillingPayload() {
     return {
@@ -305,13 +322,13 @@ function CheckoutPage() {
     );
   }
 
-  // Pesaflow's hosted checkout, embedded — the redirect useEffect above
-  // handles detecting completion, not this component watching the iframe.
-  if (showIframe && order && payment?.checkout_url) {
+  // Pesaflow auto-initiates the STK push. Hide the provider iframe for
+  // now so the customer only sees a waiting state while approving on
+  // their phone.
+  if (showIframe && order && payment) {
     return (
-      <PesaflowIframeStep
+      <PesaflowWaitingStep
         order={order}
-        checkoutUrl={payment.checkout_url}
         onCancel={() => setShowIframe(false)}
       />
     );
@@ -540,48 +557,32 @@ function CheckoutPage() {
   );
 }
 
-/**
- * Pesaflow's hosted checkout page, embedded in an iframe (per the backend's
- * PesaflowGateway.create_invoice — format="iframe" returns working checkout
- * HTML directly). The customer picks a payment method, triggers an STK
- * push, pays, and Pesaflow eventually redirects *inside this iframe* to
- * callBackURLOnSuccess — our own /checkout route, which busts out to the
- * top-level window and confirms the real status there (see the two
- * useEffects in CheckoutPage). Nothing here watches the iframe directly.
- */
-function PesaflowIframeStep({
+function PesaflowWaitingStep({
   order,
-  checkoutUrl,
   onCancel,
 }: {
   order: OrderOut;
-  checkoutUrl: string;
   onCancel: () => void;
 }) {
   return (
     <SiteShell>
-      <div className="mx-auto max-w-2xl px-4 py-12 md:px-8">
-        <div className="flex items-center justify-between border border-border bg-paper-warm p-4">
-          <div>
-            <p className="text-sm font-medium">Order {order.order_number}</p>
-            <p className="text-xs text-muted-foreground">{formatKES(order.total)}</p>
-          </div>
+      <div className="mx-auto max-w-md px-4 py-24 md:px-8">
+        <div className="border border-border bg-paper-warm p-8 text-center">
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+          <p className="mt-4 font-display text-2xl">Waiting for M-PESA payment</p>
+          <p className="mt-3 font-display text-3xl tabular-nums">{formatKES(order.total)}</p>
+          <p className="mt-2 text-sm text-muted-foreground">Order {order.order_number}</p>
+          <p className="mt-5 text-sm text-muted-foreground">
+            Check your phone and enter your M-PESA PIN. This page will continue automatically
+            once the payment is confirmed.
+          </p>
+          <button
+            onClick={onCancel}
+            className="mt-8 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+          >
+            Cancel and edit billing details
+          </button>
         </div>
-        <div className="mt-4 border border-border">
-          <iframe
-            src={checkoutUrl}
-            title="Pesaflow secure checkout"
-            width="100%"
-            height={600}
-            className="block w-full"
-          />
-        </div>
-        <button
-          onClick={onCancel}
-          className="mt-4 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
-        >
-          Cancel and edit billing details
-        </button>
       </div>
     </SiteShell>
   );
