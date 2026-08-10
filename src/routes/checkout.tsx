@@ -126,6 +126,7 @@ function CheckoutPage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.downloads });
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.list });
       queryClient.invalidateQueries({ queryKey: queryKeys.cart });
+      navigate({ to: "/account/downloads" });
     } else if (status === "failed") {
       toast.error(
         latest?.error
@@ -133,7 +134,7 @@ function CheckoutPage() {
           : "Payment was not completed. You can try again.",
       );
     }
-  }, [searchParams.payment, confirmFetched, returnPayments, queryClient]);
+  }, [searchParams.payment, confirmFetched, returnPayments, queryClient, navigate]);
 
   // Pesaflow's iframe API requires clientIDNumber (billing.id_number below) —
   // the mock provider never touches Pesaflow, so it's the only exemption.
