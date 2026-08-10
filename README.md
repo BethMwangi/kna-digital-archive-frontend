@@ -1,5 +1,7 @@
 # Urithi Digital Archive Frontend
 
+[![Frontend CI](https://github.com/BethMwangi/kna-digital-archive-frontend/actions/workflows/ci.yml/badge.svg)](https://github.com/BethMwangi/kna-digital-archive-frontend/actions/workflows/ci.yml)
+
 Frontend for the Urithi Digital Archive, built with [TanStack Start](https://tanstack.com/start), Vite, React 19, and Tailwind CSS.
 
 ## Prerequisites
