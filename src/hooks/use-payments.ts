@@ -28,11 +28,19 @@ export function useSimulatePayment() {
   });
 }
 
-/** Retry UI: pass an orderId to scope to that order's payment attempts. */
+/**
+ * Retry UI: pass an orderId to scope to that order's payment attempts.
+ * Gated on orderId being present — without this, checkout.tsx's usage (only
+ * meaningful once returning from a Pesaflow redirect) would otherwise fire
+ * GET /payments/ on every mount of the checkout page, including while the
+ * customer is still just creating an account, long before any payment
+ * exists to check.
+ */
 export function usePayments(orderId?: string) {
   return useQuery({
     queryKey: queryKeys.payments.list(orderId),
     queryFn: () => listPayments(orderId),
+    enabled: Boolean(orderId),
   });
 }
 
