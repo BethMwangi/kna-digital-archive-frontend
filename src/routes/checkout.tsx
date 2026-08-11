@@ -7,7 +7,6 @@ import { formatKES } from "@/lib/mock-data";
 import { useCart } from "@/hooks/use-cart";
 import { useInitiatePayment, usePayments, useSimulatePayment } from "@/hooks/use-payments";
 import { checkout } from "@/lib/api/orders";
-import { listDownloads } from "@/lib/api/downloads";
 import { normalizeKenyanPhone } from "@/components/kna/phone-field";
 import type { OrderOut, PaymentOut } from "@/lib/api/types";
 import { queryKeys } from "@/lib/api/query-keys";
@@ -124,23 +123,10 @@ function CheckoutPage() {
 
     if (status === "completed" || status === "success") {
       setPaid(true);
-      void (async () => {
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: queryKeys.downloads }),
-          queryClient.invalidateQueries({ queryKey: queryKeys.orders.list }),
-          queryClient.invalidateQueries({ queryKey: queryKeys.cart }),
-        ]);
-        const downloads = await queryClient.fetchQuery({
-          queryKey: queryKeys.downloads,
-          queryFn: listDownloads,
-        });
-        const download = downloads.find((item) => item.external_download_link);
-        if (download?.external_download_link) {
-          window.location.assign(download.external_download_link);
-          return;
-        }
-        navigate({ to: "/account/downloads" });
-      })();
+      queryClient.invalidateQueries({ queryKey: queryKeys.downloads });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.list });
+      queryClient.invalidateQueries({ queryKey: queryKeys.cart });
+      navigate({ to: "/account/downloads" });
     } else if (status === "failed") {
       toast.error(
         latest?.error
