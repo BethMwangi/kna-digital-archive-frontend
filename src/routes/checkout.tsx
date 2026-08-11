@@ -5,7 +5,7 @@ import { SiteShell } from "@/components/kna/site-shell";
 import { LazyImage } from "@/components/kna/components";
 import { formatKES } from "@/lib/mock-data";
 import { useCart } from "@/hooks/use-cart";
-import { useInitiatePayment, usePayments, useSimulatePayment } from "@/hooks/use-payments";
+import { useInitiatePayment, usePayment, useSimulatePayment } from "@/hooks/use-payments";
 import { checkout } from "@/lib/api/orders";
 import { normalizeKenyanPhone } from "@/components/kna/phone-field";
 import type { OrderOut, PaymentOut } from "@/lib/api/types";
@@ -29,6 +29,7 @@ const USE_MOCK_PROVIDER = import.meta.env.DEV && import.meta.env.VITE_USE_MOCK_P
 export const Route = createFileRoute("/checkout")({
   validateSearch: (search: Record<string, unknown>) => ({
     payment: (search.payment as string) || undefined,
+    paymentId: (search.payment_id as string) || undefined,
     order: (search.order as string) || undefined,
   }),
   head: () => ({ meta: [{ title: "Checkout — Urithi Digital Archive" }] }),
@@ -104,22 +105,21 @@ function CheckoutPage() {
   }, []);
 
   // Handle Pesaflow return redirects (success/failure query params). The
-  // query param alone isn't proof of payment — it's just a URL, trivially
-  // guessable/bookmarkable — so this confirms against our own backend
-  // (updated independently by Pesaflow's IPN callback) with a single fetch,
-  // not polling. If that confirmation is inconclusive (e.g. still settling),
-  // it falls back to trusting the redirect rather than leaving the customer
-  // stuck on a spinner after they've actually paid.
-  const { data: returnPayments, isFetched: confirmFetched } = usePayments(
-    searchParams.payment ? searchParams.order : undefined,
-  );
+  // redirect URL is only a browser navigation, so confirm the specific
+  // Payment with the backend. GET /payments/{id}/ also refreshes Pesaflow
+  // status server-side; when it moves to completed, the backend grants
+  // downloads, syncs Urithi links, and sends the receipt email.
+  const {
+    data: returnPayment,
+    isFetched: confirmFetched,
+    isError: confirmFailed,
+  } = usePayment(searchParams.payment ? searchParams.paymentId : undefined);
 
   useEffect(() => {
-    if (!searchParams.payment || !confirmFetched) return;
-    const latest = returnPayments
-      ?.slice()
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-    const status = latest?.status ?? searchParams.payment;
+    if (!searchParams.payment) return;
+    if (searchParams.paymentId && !confirmFetched && !confirmFailed) return;
+
+    const status = returnPayment?.status ?? (!searchParams.paymentId ? searchParams.payment : "");
 
     if (status === "completed" || status === "success") {
       setPaid(true);
@@ -128,12 +128,21 @@ function CheckoutPage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.cart });
     } else if (status === "failed") {
       toast.error(
-        latest?.error
-          ? `Payment gateway error: ${latest.error}`
+        returnPayment?.error
+          ? `Payment gateway error: ${returnPayment.error}`
           : "Payment was not completed. You can try again.",
       );
+    } else if (confirmFailed) {
+      toast.error("Payment was received, but confirmation failed. Check My Downloads shortly.");
     }
-  }, [searchParams.payment, confirmFetched, returnPayments, queryClient]);
+  }, [
+    searchParams.payment,
+    searchParams.paymentId,
+    confirmFetched,
+    confirmFailed,
+    returnPayment,
+    queryClient,
+  ]);
 
   // Pesaflow's iframe API requires clientIDNumber (billing.id_number below) —
   // the mock provider never touches Pesaflow, so it's the only exemption.
@@ -277,7 +286,7 @@ function CheckoutPage() {
   // Returned from Pesaflow — confirming against our own backend before
   // showing anything, so we don't flash the billing form while that
   // one-shot check is in flight (see the confirm effect above).
-  if (searchParams.payment && !confirmFetched) {
+  if (searchParams.payment && searchParams.paymentId && !confirmFetched && !confirmFailed) {
     return (
       <SiteShell>
         <div className="mx-auto max-w-md px-4 py-24 md:px-8">
