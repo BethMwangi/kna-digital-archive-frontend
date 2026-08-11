@@ -5,6 +5,7 @@ import { SiteShell } from "@/components/kna/site-shell";
 import { LazyImage } from "@/components/kna/components";
 import { formatKES } from "@/lib/mock-data";
 import { useCart } from "@/hooks/use-cart";
+import { useDownloadLink } from "@/hooks/use-downloads";
 import { useInitiatePayment, usePayment, useSimulatePayment } from "@/hooks/use-payments";
 import { checkout } from "@/lib/api/orders";
 import { normalizeKenyanPhone } from "@/components/kna/phone-field";
@@ -18,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
-import { Check, Lock, XCircle, ExternalLink, Loader2 } from "lucide-react";
+import { Check, Download, Lock, XCircle, ExternalLink, Loader2 } from "lucide-react";
 
 /**
  * DEV_MODE: set to true to use the mock provider instead of Pesaflow.
@@ -280,7 +281,13 @@ function CheckoutPage() {
   // Show success screen once confirmed (either via mock simulate, in-page
   // Pesaflow status, or a confirmed Pesaflow redirect)
   if (paid) {
-    return <SuccessScreen order={order} orderNumber={searchParams.order} />;
+    return (
+      <SuccessScreen
+        order={order}
+        orderNumber={searchParams.order}
+        payment={returnPayment ?? payment}
+      />
+    );
   }
 
   // Returned from Pesaflow — confirming against our own backend before
@@ -713,9 +720,28 @@ function PaymentStep({
   );
 }
 
-function SuccessScreen({ order, orderNumber }: { order: OrderOut | null; orderNumber?: string }) {
+function SuccessScreen({
+  order,
+  orderNumber,
+  payment,
+}: {
+  order: OrderOut | null;
+  orderNumber?: string;
+  payment: PaymentOut | null | undefined;
+}) {
   const displayOrderNumber = order?.order_number || orderNumber || "—";
   const displayTotal = order ? formatKES(order.total) : null;
+  const downloadLink = useDownloadLink();
+  const readyDownloads = (payment?.downloads ?? []).filter(
+    (download) => download.can_download && Boolean(download.external_download_link),
+  );
+
+  const handleDownload = (id: string) => {
+    downloadLink.mutate(id, {
+      onSuccess: (link) => window.open(link.url, "_blank", "noopener,noreferrer"),
+      onError: () => toast.error("Couldn't open the download. Please try again."),
+    });
+  };
 
   return (
     <SiteShell>
@@ -726,7 +752,9 @@ function SuccessScreen({ order, orderNumber }: { order: OrderOut | null; orderNu
         <p className="eyebrow mt-6">Payment received</p>
         <h1 className="mt-3 font-display text-4xl md:text-5xl">Thank you.</h1>
         <p className="mt-4 text-muted-foreground">
-          Your downloads are ready, and a receipt is on its way to your email.
+          {readyDownloads.length > 0
+            ? "Your download is ready, and a receipt is on its way to your email."
+            : "Your payment is confirmed. Your download is being prepared and will appear in My Downloads."}
         </p>
         <div className="mt-8 inline-block border border-border bg-paper-warm px-8 py-6 text-left">
           <p className="eyebrow">Order number</p>
@@ -738,6 +766,20 @@ function SuccessScreen({ order, orderNumber }: { order: OrderOut | null; orderNu
           )}
         </div>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
+          {readyDownloads.map((download) => (
+            <Button
+              key={download.id}
+              size="lg"
+              className="rounded-none bg-flag-green text-white hover:bg-flag-green/90"
+              onClick={() => handleDownload(download.id)}
+              disabled={downloadLink.isPending}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {readyDownloads.length === 1
+                ? "Click to download"
+                : `Download ${download.asset_number}`}
+            </Button>
+          ))}
           <Button asChild size="lg" className="rounded-none bg-ink text-paper hover:bg-ink/90">
             <Link to="/account/downloads">Go to downloads</Link>
           </Button>
