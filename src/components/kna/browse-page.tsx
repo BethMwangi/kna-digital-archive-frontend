@@ -22,6 +22,7 @@ import {
 import {
   Pagination,
   PaginationContent,
+  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
@@ -79,6 +80,34 @@ function toCard(a: AssetListItem): AssetCardData {
     category: a.category?.name ?? "Uncategorised",
     priceFrom: a.price,
   };
+}
+
+type PageToken = number | "ellipsis";
+
+// Always shows page 1, the last page, and a window around the current page —
+// collapsing everything else into a single "…". A one-page gap is filled in
+// directly rather than replaced with an ellipsis (nicer than "1 … 3").
+function getPageNumbers(current: number, total: number): PageToken[] {
+  const delta = 1;
+  const shown = new Set<number>();
+  shown.add(1);
+  shown.add(total);
+  for (let i = current - delta; i <= current + delta; i++) {
+    if (i >= 1 && i <= total) shown.add(i);
+  }
+  const sorted = [...shown].sort((a, b) => a - b);
+
+  const tokens: PageToken[] = [];
+  let prev = 0;
+  for (const page of sorted) {
+    if (prev) {
+      if (page - prev === 2) tokens.push(prev + 1);
+      else if (page - prev > 2) tokens.push("ellipsis");
+    }
+    tokens.push(page);
+    prev = page;
+  }
+  return tokens;
 }
 
 export function BrowsePage() {
@@ -374,11 +403,28 @@ export function BrowsePage() {
                         }}
                       />
                     </PaginationItem>
-                    <PaginationItem>
-                      <PaginationLink href="#" isActive>
-                        {page}
-                      </PaginationLink>
-                    </PaginationItem>
+                    {getPageNumbers(page, totalPages).map((token, i) =>
+                      token === "ellipsis" ? (
+                        <PaginationItem key={`ellipsis-${i}`}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      ) : (
+                        <PaginationItem key={token}>
+                          <PaginationLink
+                            href="#"
+                            isActive={token === page}
+                            aria-disabled={isFetching}
+                            className={isFetching ? "pointer-events-none opacity-50" : undefined}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (token !== page) goToPage(token);
+                            }}
+                          >
+                            {token}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ),
+                    )}
                     <PaginationItem>
                       <PaginationNext
                         href="#"
