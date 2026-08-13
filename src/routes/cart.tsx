@@ -4,7 +4,6 @@ import { EmptyState, LazyImage } from "@/components/kna/components";
 import { formatKES } from "@/lib/mock-data";
 import { useCart, useRemoveFromCart } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Trash2, ArrowRight } from "lucide-react";
 
@@ -41,7 +40,7 @@ function CartPage() {
           <div className="mt-10">
             <EmptyState
               title="Your cart is empty"
-              description="Browse the archive and license a record to see it here."
+              description="Browse the archive and add a record to see it here."
               action={
                 <Button asChild variant="outline">
                   <Link to="/browse">Browse the archive</Link>
@@ -72,9 +71,6 @@ function CartPage() {
                     >
                       {item.asset.title}
                     </Link>
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <Badge variant="outline">{item.license.name}</Badge>
-                    </div>
                     <button
                       onClick={() => removeItem.mutate(item.id)}
                       disabled={removeItem.isPending}

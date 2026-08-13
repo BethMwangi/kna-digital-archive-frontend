@@ -12,7 +12,6 @@ import { normalizeKenyanPhone } from "@/components/kna/phone-field";
 import type { OrderOut, PaymentOut } from "@/lib/api/types";
 import { queryKeys } from "@/lib/api/query-keys";
 import { useAuth } from "@/lib/auth/use-auth";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -374,9 +373,6 @@ function CheckoutPage() {
                       />
                       <div className="min-w-0 flex-1">
                         <p className="line-clamp-1 text-sm font-medium">{item.asset.title}</p>
-                        <div className="mt-1 flex items-center gap-2">
-                          <Badge variant="outline">{item.license.name}</Badge>
-                        </div>
                       </div>
                       <p className="tabular-nums text-sm">{formatKES(item.subtotal)}</p>
                     </div>
@@ -491,15 +487,14 @@ function CheckoutPage() {
                   }}
                 />
                 <Label htmlFor="terms" className="text-xs leading-relaxed text-muted-foreground">
-                  I agree to the Urithi <a className="underline">Licensing Terms</a> and confirm I
-                  have read the usage rights for each selected license type. Records are
-                  non-transferable and use outside declared license scope is prohibited.
+                  I agree to the Urithi <a className="underline">Terms of Use</a> and confirm I have
+                  read the usage rights for these records. Records are non-transferable.
                   <span className="text-destructive"> *</span>
                 </Label>
               </div>
               {termsError && !agreedToTerms && (
                 <p className="mt-2 text-xs text-destructive">
-                  You must agree to the licensing terms before paying.
+                  You must agree to the terms before paying.
                 </p>
               )}
             </section>

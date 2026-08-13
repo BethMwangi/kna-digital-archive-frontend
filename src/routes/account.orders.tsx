@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { formatKES } from "@/lib/mock-data";
 import { useOrders } from "@/hooks/use-orders";
-import { LazyImage, LicenseBadge, OrderStatusBadge } from "@/components/kna/components";
+import { LazyImage, OrderStatusBadge } from "@/components/kna/components";
 import type { OrderStatus } from "@/lib/mock-data";
 import {
   Sheet,
@@ -64,7 +64,7 @@ function OrderHistory() {
           <EmptyState
             icon={<Receipt className="h-5 w-5" />}
             title="No orders yet"
-            description="Your licensed records will show up here once you make a purchase."
+            description="Your purchased records will show up here once you make a purchase."
           />
         </div>
       ) : (
@@ -130,9 +130,6 @@ function OrderHistory() {
                                 <p className="line-clamp-2 text-sm font-medium">
                                   {it.asset_title_snapshot}
                                 </p>
-                                <div className="mt-1 flex items-center gap-2">
-                                  <LicenseBadge type={it.license.name as never} />
-                                </div>
                               </div>
                               <p className="text-sm tabular-nums">
                                 {formatKES(it.price_at_purchase)}

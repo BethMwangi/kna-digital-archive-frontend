@@ -10,11 +10,9 @@ const API = "http://localhost:8000/api/v1";
 
 const line = (asset_id: string) => ({
   asset_id,
-  license_id: "lic-editorial",
   title: `Asset ${asset_id}`,
   thumbnail: `https://example.com/${asset_id}.jpg`,
   price: 1500,
-  license_name: "Editorial",
 });
 
 beforeEach(() => {

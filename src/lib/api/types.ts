@@ -184,7 +184,6 @@ export interface CartItemAssetOut {
 export interface CartItemOut {
   id: string;
   asset: CartItemAssetOut;
-  license: LicenseOut;
   subtotal: number;
 }
 
@@ -200,7 +199,6 @@ export interface OrderItemOut {
   id: string;
   asset_title_snapshot: string;
   asset: CartItemAssetOut;
-  license: LicenseOut;
   /** Frozen at purchase time — immune to later price changes. */
   price_at_purchase: number;
 }
@@ -251,13 +249,12 @@ export interface PaymentOut {
   created_at: string;
 }
 
-/** GET /downloads/ — one purchased entitlement per (asset, license) line on a paid order. Flat shape, no nested asset/license objects. */
+/** GET /downloads/ — one purchased entitlement per asset line on a paid order. Flat shape, no nested asset object. */
 export interface DownloadOut {
   id: string;
   asset_title: string;
   asset_number: string;
   thumbnail: string;
-  license_name: string;
   order_number: string;
   download_count: number;
   max_downloads: number;

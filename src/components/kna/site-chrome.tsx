@@ -125,7 +125,7 @@ export function SiteFooter() {
             title="Institution"
             links={[
               "About Urithi",
-              "Kenya News Agency",
+              { label: "Kenya News Agency", href: "https://www.kenyanews.go.ke/" },
               "Contact",
               "Press office",
               "Accessibility",
@@ -141,7 +141,7 @@ export function SiteFooter() {
   );
 }
 
-type FooterLink = string | { label: string; to: string };
+type FooterLink = string | { label: string; to: string } | { label: string; href: string };
 
 function FooterCol({ title, links }: { title: string; links: FooterLink[] }) {
   return (
@@ -156,10 +156,19 @@ function FooterCol({ title, links }: { title: string; links: FooterLink[] }) {
                 <a href="#" className="text-foreground/80 hover:text-foreground">
                   {label}
                 </a>
-              ) : (
+              ) : "to" in l ? (
                 <Link to={l.to as never} className="text-foreground/80 hover:text-foreground">
                   {label}
                 </Link>
+              ) : (
+                <a
+                  href={l.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground/80 hover:text-foreground"
+                >
+                  {label}
+                </a>
               )}
             </li>
           );

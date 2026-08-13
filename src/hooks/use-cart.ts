@@ -13,11 +13,10 @@ function useGuestCartLines(): GuestCartLine[] {
 
 function guestLineToCartItem(line: GuestCartLine): CartItemOut {
   return {
-    // Synthetic id doubles as the (asset_id, license_id) pair for removal —
-    // see useRemoveFromCart, which never needs a real cart-item id for guests.
-    id: `${line.asset_id}:${line.license_id}`,
+    // Synthetic id doubles as the asset_id for removal — see useRemoveFromCart,
+    // which never needs a real cart-item id for guests.
+    id: line.asset_id,
     asset: { id: line.asset_id, title: line.title, thumbnail: line.thumbnail, price: line.price },
-    license: { id: line.license_id, name: line.license_name, slug: "", description: "" },
     subtotal: line.price,
   };
 }
@@ -63,11 +62,9 @@ export function useCart(): UseCartResult {
 
 export interface AddToCartLineInput {
   asset_id: string;
-  license_id: string;
   title: string;
   thumbnail: string;
   price: number;
-  license_name: string;
 }
 
 /** Adds to the server cart when logged in, the localStorage cart otherwise. */
@@ -77,7 +74,7 @@ export function useAddToCart() {
   return useMutation({
     mutationFn: async (input: AddToCartLineInput): Promise<CartOut | null> => {
       if (isAuthenticated) {
-        return addToCart({ asset_id: input.asset_id, license_id: input.license_id });
+        return addToCart({ asset_id: input.asset_id });
       }
       guestCart.addLine(input);
       return null;
@@ -88,7 +85,7 @@ export function useAddToCart() {
   });
 }
 
-/** Item id is `${asset_id}:${license_id}` for guest lines — see guestLineToCartItem. */
+/** Item id is the asset_id for guest lines — see guestLineToCartItem. */
 export function useRemoveFromCart() {
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
@@ -97,8 +94,7 @@ export function useRemoveFromCart() {
       if (isAuthenticated) {
         return removeCartItem(itemId);
       }
-      const [assetId, licenseId] = itemId.split(":");
-      guestCart.removeLine(assetId, licenseId);
+      guestCart.removeLine(itemId);
       return null;
     },
     onSuccess: (cart) => {

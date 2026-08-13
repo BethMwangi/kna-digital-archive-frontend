@@ -11,11 +11,9 @@ const STORAGE_KEY = "kna.guestCart";
 
 export interface GuestCartLine {
   asset_id: string;
-  license_id: string;
   title: string;
   thumbnail: string;
   price: number;
-  license_name: string;
 }
 
 const EMPTY: GuestCartLine[] = [];
@@ -54,17 +52,15 @@ export function getServerLines(): GuestCartLine[] {
   return EMPTY;
 }
 
-/** No-ops if this exact asset+license pair is already in the guest cart. */
+/** No-ops if this asset is already in the guest cart. */
 export function addLine(line: GuestCartLine) {
-  const exists = lines.some(
-    (l) => l.asset_id === line.asset_id && l.license_id === line.license_id,
-  );
+  const exists = lines.some((l) => l.asset_id === line.asset_id);
   if (exists) return;
   persist([...lines, line]);
 }
 
-export function removeLine(assetId: string, licenseId: string) {
-  persist(lines.filter((l) => !(l.asset_id === assetId && l.license_id === licenseId)));
+export function removeLine(assetId: string) {
+  persist(lines.filter((l) => l.asset_id !== assetId));
 }
 
 export function clearLines() {

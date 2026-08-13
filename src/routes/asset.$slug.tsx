@@ -12,7 +12,7 @@ import {
 } from "@/components/kna/components";
 import { assets, findAsset, formatKES, licenseInfo } from "@/lib/mock-data";
 import type { Asset, LicenseType } from "@/lib/mock-data";
-import { useAsset, useAssets, useLicenses } from "@/hooks/use-assets";
+import { useAsset, useAssets } from "@/hooks/use-assets";
 import { useAddToCart } from "@/hooks/use-cart";
 import { ApiError } from "@/lib/api/client";
 import type { AssetListItem } from "@/lib/api/types";
@@ -227,7 +227,7 @@ function MockAssetDetail({ asset }: { asset: Asset }) {
               {formatKES(asset.tiers.find((t) => t.label === tier)?.price ?? asset.priceFrom)}
             </Button>
             <p className="mt-3 text-center text-xs text-muted-foreground">
-              Instant download · Invoice + license certificate included
+              Instant download · Invoice included
             </p>
           </div>
         </aside>
@@ -249,14 +249,9 @@ function MockAssetDetail({ asset }: { asset: Asset }) {
 function RealAssetDetail({ id }: { id: string }) {
   const { data: asset, isPending, isError } = useAsset(id);
   const { data: assetsPage } = useAssets({ page: 1 });
-  const { data: licenses } = useLicenses();
   const [side, setSide] = useState<"front" | "back">("front");
   const addToCart = useAddToCart();
   const navigate = useNavigate();
-
-  // No customer-facing license choice — always the account's first (only)
-  // license type, picked implicitly so checkout still has one to attach.
-  const selectedLicenseId = licenses?.[0]?.id;
 
   if (isPending) {
     return (
@@ -298,19 +293,12 @@ function RealAssetDetail({ id }: { id: string }) {
   const mainImage = side === "back" && asset.image_back ? asset.image_back : asset.image;
 
   const handleAddToCart = () => {
-    const selectedLicense = licenses?.find((l) => l.id === selectedLicenseId);
-    if (!selectedLicenseId || !selectedLicense) {
-      toast.error("Choose a license first.");
-      return;
-    }
     addToCart.mutate(
       {
         asset_id: asset.id,
-        license_id: selectedLicenseId,
         title: asset.title,
         thumbnail: asset.thumbnail,
         price: asset.price,
-        license_name: selectedLicense.name,
       },
       {
         onSuccess: () => {
@@ -433,7 +421,7 @@ function RealAssetDetail({ id }: { id: string }) {
         {/* Purchase panel */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="border border-border bg-paper-warm p-6">
-            <p className="eyebrow">License this record</p>
+            <p className="eyebrow">Buy this record</p>
             <p className="mt-2 text-3xl font-display">
               <span className="tabular-nums">{formatKES(asset.price)}</span>
             </p>
@@ -445,12 +433,12 @@ function RealAssetDetail({ id }: { id: string }) {
               className="mt-6 w-full rounded-none bg-flag-green text-paper hover:bg-flag-green/90"
               size="lg"
               onClick={handleAddToCart}
-              disabled={addToCart.isPending || !selectedLicenseId}
+              disabled={addToCart.isPending}
             >
               {addToCart.isPending ? "Adding…" : `Add to cart · ${formatKES(asset.price)}`}
             </Button>
             <p className="mt-3 text-center text-xs text-muted-foreground">
-              Instant download · Invoice + license certificate included
+              Instant download · Invoice included
             </p>
           </div>
         </aside>

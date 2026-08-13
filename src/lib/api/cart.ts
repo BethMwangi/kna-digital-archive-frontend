@@ -3,7 +3,6 @@ import type { CartItemOut, CartOut } from "./types";
 
 export interface AddToCartInput {
   asset_id: string;
-  license_id: string;
 }
 
 // DRF renders DecimalField as a JSON string ("1500.00") — coerce at the boundary (see assets.ts).
@@ -26,10 +25,10 @@ export async function getCart(): Promise<CartOut> {
 }
 
 /**
- * POST /cart/ — adds one licensed copy of an asset. 409 if that exact
- * asset+license pair is already in the cart (safe to ignore when replaying
- * a guest cart on login — see src/lib/cart/merge-guest-cart.ts). Returns the
- * full updated cart, not just the new line.
+ * POST /cart/ — adds an asset to the cart. 409 if it's already in the cart
+ * (safe to ignore when replaying a guest cart on login — see
+ * src/lib/cart/merge-guest-cart.ts). Returns the full updated cart, not just
+ * the new line.
  */
 export async function addToCart(input: AddToCartInput): Promise<CartOut> {
   const data = await apiClient.post<CartOut>("/cart/", input);
