@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/kna/site-chrome";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Download, Receipt, User, Lock, LogOut, ShieldCheck } from "lucide-react";
+import { Download, Receipt, User, Lock, LogOut, ShieldCheck } from "lucide-react";
 import { RequireAuth } from "@/lib/auth/protected-route";
 import { useAuth } from "@/lib/auth/use-auth";
 import { useMe } from "@/hooks/use-account";
@@ -21,7 +21,6 @@ const nav: {
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
 }[] = [
-  { to: "/account", label: "Overview", icon: LayoutDashboard, exact: true },
   { to: "/account/downloads", label: "My Downloads", icon: Download },
   { to: "/account/orders", label: "Order History", icon: Receipt },
   { to: "/account/profile", label: "Profile", icon: User },
