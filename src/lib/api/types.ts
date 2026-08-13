@@ -221,6 +221,15 @@ export interface OrderOut {
 }
 
 /** POST /payments/initiate/ and /payments/{id}/ responses. */
+export interface PaymentDownloadOut {
+  id: string;
+  asset_title: string;
+  asset_number: string;
+  external_download_link: string;
+  external_download_status: string;
+  can_download: boolean;
+}
+
 export interface PaymentOut {
   id: string;
   order: string;
@@ -235,6 +244,10 @@ export interface PaymentOut {
   simulate_url?: string;
   /** Present on initiate failure — human-readable error from the gateway. */
   error?: string;
+  fulfilled_at?: string | null;
+  success_email_sent_at?: string | null;
+  fulfillment_last_error?: string;
+  downloads?: PaymentDownloadOut[];
   created_at: string;
 }
 

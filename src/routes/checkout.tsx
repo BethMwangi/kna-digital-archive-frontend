@@ -5,7 +5,8 @@ import { SiteShell } from "@/components/kna/site-shell";
 import { LazyImage } from "@/components/kna/components";
 import { formatKES } from "@/lib/mock-data";
 import { useCart } from "@/hooks/use-cart";
-import { useInitiatePayment, usePayments, useSimulatePayment } from "@/hooks/use-payments";
+import { useDownloadLink } from "@/hooks/use-downloads";
+import { useInitiatePayment, usePayment, useSimulatePayment } from "@/hooks/use-payments";
 import { checkout } from "@/lib/api/orders";
 import { normalizeKenyanPhone } from "@/components/kna/phone-field";
 import type { OrderOut, PaymentOut } from "@/lib/api/types";
@@ -18,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
-import { Check, Lock, XCircle, ExternalLink, Loader2 } from "lucide-react";
+import { Check, Download, Lock, XCircle, ExternalLink, Loader2 } from "lucide-react";
 
 /**
  * DEV_MODE: set to true to use the mock provider instead of Pesaflow.
@@ -29,6 +30,7 @@ const USE_MOCK_PROVIDER = import.meta.env.DEV && import.meta.env.VITE_USE_MOCK_P
 export const Route = createFileRoute("/checkout")({
   validateSearch: (search: Record<string, unknown>) => ({
     payment: (search.payment as string) || undefined,
+    paymentId: (search.payment_id as string) || undefined,
     order: (search.order as string) || undefined,
   }),
   head: () => ({ meta: [{ title: "Checkout — Urithi Digital Archive" }] }),
@@ -104,22 +106,21 @@ function CheckoutPage() {
   }, []);
 
   // Handle Pesaflow return redirects (success/failure query params). The
-  // query param alone isn't proof of payment — it's just a URL, trivially
-  // guessable/bookmarkable — so this confirms against our own backend
-  // (updated independently by Pesaflow's IPN callback) with a single fetch,
-  // not polling. If that confirmation is inconclusive (e.g. still settling),
-  // it falls back to trusting the redirect rather than leaving the customer
-  // stuck on a spinner after they've actually paid.
-  const { data: returnPayments, isFetched: confirmFetched } = usePayments(
-    searchParams.payment ? searchParams.order : undefined,
-  );
+  // redirect URL is only a browser navigation, so confirm the specific
+  // Payment with the backend. GET /payments/{id}/ also refreshes Pesaflow
+  // status server-side; when it moves to completed, the backend grants
+  // downloads, syncs Urithi links, and sends the receipt email.
+  const {
+    data: returnPayment,
+    isFetched: confirmFetched,
+    isError: confirmFailed,
+  } = usePayment(searchParams.payment ? searchParams.paymentId : undefined);
 
   useEffect(() => {
-    if (!searchParams.payment || !confirmFetched) return;
-    const latest = returnPayments
-      ?.slice()
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-    const status = latest?.status ?? searchParams.payment;
+    if (!searchParams.payment) return;
+    if (searchParams.paymentId && !confirmFetched && !confirmFailed) return;
+
+    const status = returnPayment?.status ?? (!searchParams.paymentId ? searchParams.payment : "");
 
     if (status === "completed" || status === "success") {
       setPaid(true);
@@ -128,12 +129,21 @@ function CheckoutPage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.cart });
     } else if (status === "failed") {
       toast.error(
-        latest?.error
-          ? `Payment gateway error: ${latest.error}`
+        returnPayment?.error
+          ? `Payment gateway error: ${returnPayment.error}`
           : "Payment was not completed. You can try again.",
       );
+    } else if (confirmFailed) {
+      toast.error("Payment was received, but confirmation failed. Check My Downloads shortly.");
     }
-  }, [searchParams.payment, confirmFetched, returnPayments, queryClient]);
+  }, [
+    searchParams.payment,
+    searchParams.paymentId,
+    confirmFetched,
+    confirmFailed,
+    returnPayment,
+    queryClient,
+  ]);
 
   // Pesaflow's iframe API requires clientIDNumber (billing.id_number below) —
   // the mock provider never touches Pesaflow, so it's the only exemption.
@@ -271,13 +281,19 @@ function CheckoutPage() {
   // Show success screen once confirmed (either via mock simulate, in-page
   // Pesaflow status, or a confirmed Pesaflow redirect)
   if (paid) {
-    return <SuccessScreen order={order} orderNumber={searchParams.order} />;
+    return (
+      <SuccessScreen
+        order={order}
+        orderNumber={searchParams.order}
+        payment={returnPayment ?? payment}
+      />
+    );
   }
 
   // Returned from Pesaflow — confirming against our own backend before
   // showing anything, so we don't flash the billing form while that
   // one-shot check is in flight (see the confirm effect above).
-  if (searchParams.payment && !confirmFetched) {
+  if (searchParams.payment && searchParams.paymentId && !confirmFetched && !confirmFailed) {
     return (
       <SiteShell>
         <div className="mx-auto max-w-md px-4 py-24 md:px-8">
@@ -704,9 +720,28 @@ function PaymentStep({
   );
 }
 
-function SuccessScreen({ order, orderNumber }: { order: OrderOut | null; orderNumber?: string }) {
+function SuccessScreen({
+  order,
+  orderNumber,
+  payment,
+}: {
+  order: OrderOut | null;
+  orderNumber?: string;
+  payment: PaymentOut | null | undefined;
+}) {
   const displayOrderNumber = order?.order_number || orderNumber || "—";
   const displayTotal = order ? formatKES(order.total) : null;
+  const downloadLink = useDownloadLink();
+  const readyDownloads = (payment?.downloads ?? []).filter(
+    (download) => download.can_download && Boolean(download.external_download_link),
+  );
+
+  const handleDownload = (id: string) => {
+    downloadLink.mutate(id, {
+      onSuccess: (link) => window.open(link.url, "_blank", "noopener,noreferrer"),
+      onError: () => toast.error("Couldn't open the download. Please try again."),
+    });
+  };
 
   return (
     <SiteShell>
@@ -717,7 +752,9 @@ function SuccessScreen({ order, orderNumber }: { order: OrderOut | null; orderNu
         <p className="eyebrow mt-6">Payment received</p>
         <h1 className="mt-3 font-display text-4xl md:text-5xl">Thank you.</h1>
         <p className="mt-4 text-muted-foreground">
-          Your downloads are ready, and a receipt is on its way to your email.
+          {readyDownloads.length > 0
+            ? "Your download is ready, and a receipt is on its way to your email."
+            : "Your payment is confirmed. Your download is being prepared and will appear in My Downloads."}
         </p>
         <div className="mt-8 inline-block border border-border bg-paper-warm px-8 py-6 text-left">
           <p className="eyebrow">Order number</p>
@@ -729,6 +766,20 @@ function SuccessScreen({ order, orderNumber }: { order: OrderOut | null; orderNu
           )}
         </div>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
+          {readyDownloads.map((download) => (
+            <Button
+              key={download.id}
+              size="lg"
+              className="rounded-none bg-flag-green text-white hover:bg-flag-green/90"
+              onClick={() => handleDownload(download.id)}
+              disabled={downloadLink.isPending}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {readyDownloads.length === 1
+                ? "Click to download"
+                : `Download ${download.asset_number}`}
+            </Button>
+          ))}
           <Button asChild size="lg" className="rounded-none bg-ink text-paper hover:bg-ink/90">
             <Link to="/account/downloads">Go to downloads</Link>
           </Button>
