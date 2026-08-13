@@ -12,4 +12,9 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Self-hosted target: builds a standalone Node server at .output/server/index.mjs
+  // instead of the Cloudflare default. Ignored inside Lovable's own build (forced to Cloudflare there).
+  nitro: {
+    preset: "node-server",
+  },
 });
