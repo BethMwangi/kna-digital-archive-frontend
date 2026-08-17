@@ -142,7 +142,7 @@ function RegisterPage() {
             )}
           />
 
-          <PhoneField control={form.control} name="phone_number" />
+          <PhoneField control={form.control} name="phone_number" label="Phone number" />
 
           <FormField
             control={form.control}

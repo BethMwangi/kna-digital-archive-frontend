@@ -15,12 +15,20 @@ const phoneNumber = z
   .or(z.literal(""))
   .optional();
 
+// Registration requires a phone number — the backend sends the verification
+// code by email or SMS, whichever channel is configured, so it needs one
+// on file even when email is the chosen channel.
+const requiredPhoneNumber = z
+  .string()
+  .min(1, "Phone number is required.")
+  .regex(/^\+?[0-9]{7,15}$/, "Enter a valid phone number, e.g. +254712345678.");
+
 export const registerSchema = z
   .object({
     first_name: z.string().min(1, "First name is required."),
     last_name: z.string().min(1, "Last name is required."),
     email: z.string().email("Enter a valid email address."),
-    phone_number: phoneNumber,
+    phone_number: requiredPhoneNumber,
     password,
     password_confirm: z.string(),
   })
