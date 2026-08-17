@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { AlertCircle, CheckCircle2, Loader2, Mail } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +30,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/auth/verify")({
-  head: () => ({ meta: [{ title: "Verify email — Urithi Digital Archive" }] }),
+  head: () => ({ meta: [{ title: "Verify account — Urithi Digital Archive" }] }),
   validateSearch: (search) => searchSchema.parse(search),
   component: VerifyEmailPage,
 });
@@ -40,9 +40,10 @@ export const Route = createFileRoute("/auth/verify")({
 const RESEND_COOLDOWN_S = 30;
 
 /**
- * The backend now verifies via a 6-digit code emailed to the address at
- * registration (accounts/api.py EmailVerifyView), not a uid/token link — so
- * this collects {email, code} and POSTs it, instead of auto-submitting a
+ * The backend verifies via a 6-digit code sent at registration — to the
+ * email or the phone number on file, whichever channel it's configured to
+ * use (accounts/api.py EmailVerifyView) — not a uid/token link. So this
+ * collects {email, code} and POSTs it, instead of auto-submitting a
  * query-string pair. `email` arrives prefilled via ?email= straight out of
  * registration, but the field stays editable so someone who lands here cold
  * (closed the tab, opened this page from a bookmark) can still complete it.
@@ -100,9 +101,9 @@ function VerifyEmailPage() {
           <CheckCircle2 className="h-5 w-5" />
         </div>
         <p className="eyebrow mt-6">All set</p>
-        <h1 className="mt-3 font-display text-4xl">Email verified</h1>
+        <h1 className="mt-3 font-display text-4xl">Account verified</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Your address is confirmed. You can now sign in.
+          Your account is confirmed. You can now sign in.
         </p>
         <Button
           asChild
@@ -120,13 +121,13 @@ function VerifyEmailPage() {
   return (
     <div>
       <div className="grid h-12 w-12 place-items-center bg-paper-warm text-foreground">
-        <Mail className="h-5 w-5" />
+        <ShieldCheck className="h-5 w-5" />
       </div>
       <p className="eyebrow mt-6">Confirm it's you</p>
       <h1 className="mt-3 font-display text-4xl">Enter your code</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        We emailed a 6-digit verification code to your address. Enter it below to confirm your
-        account.
+        We sent a 6-digit verification code to your email or phone number. Enter it below to confirm
+        your account.
       </p>
 
       {formError && (
