@@ -5,6 +5,9 @@ function fixPayment(payment: PaymentOut): PaymentOut {
   return {
     ...payment,
     amount: payment.amount === undefined ? undefined : toNumber(payment.amount),
+    amount_expected:
+      payment.amount_expected === undefined ? undefined : toNumber(payment.amount_expected),
+    amount_paid: payment.amount_paid === undefined ? undefined : toNumber(payment.amount_paid),
   };
 }
 

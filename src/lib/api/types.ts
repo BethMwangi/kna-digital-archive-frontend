@@ -236,6 +236,13 @@ export interface PaymentOut {
   status: string;
   /** Mirrors the order total. */
   amount?: number;
+  /**
+   * Raw figures from Pesaflow's own query_payment_status response — can
+   * diverge from `amount`/the order total (e.g. a gateway-side invoice
+   * mismatch), so surface these directly rather than assuming they agree.
+   */
+  amount_expected?: number;
+  amount_paid?: number;
   /** Pesaflow hosted checkout URL — redirect the customer here to complete payment. */
   checkout_url?: string;
   /** Present on initiate (mock only) — the mock gateway's own "Pay Now" test page. */

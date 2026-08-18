@@ -6,7 +6,12 @@ import { LazyImage } from "@/components/kna/components";
 import { formatKES } from "@/lib/mock-data";
 import { useCart } from "@/hooks/use-cart";
 import { useDownloadLink } from "@/hooks/use-downloads";
-import { useInitiatePayment, usePayment, useSimulatePayment } from "@/hooks/use-payments";
+import {
+  isSettledPaymentStatus,
+  useInitiatePayment,
+  usePayment,
+  useSimulatePayment,
+} from "@/hooks/use-payments";
 import { checkout } from "@/lib/api/orders";
 import { normalizeKenyanPhone } from "@/components/kna/phone-field";
 import type { OrderOut, PaymentOut } from "@/lib/api/types";
@@ -108,12 +113,16 @@ function CheckoutPage() {
   // redirect URL is only a browser navigation, so confirm the specific
   // Payment with the backend. GET /payments/{id}/ also refreshes Pesaflow
   // status server-side; when it moves to completed, the backend grants
-  // downloads, syncs Urithi links, and sends the receipt email.
+  // downloads, syncs Urithi links, and sends the receipt email. A backend
+  // sweep resolves stuck payments within ~3 min on its own regardless, but
+  // a short bounded poll here means someone still watching this page sees
+  // it flip to paid within seconds instead of waiting on a manual reload.
   const {
     data: returnPayment,
     isFetched: confirmFetched,
     isError: confirmFailed,
-  } = usePayment(searchParams.payment ? searchParams.paymentId : undefined);
+    pollTimedOut,
+  } = usePayment(searchParams.payment ? searchParams.paymentId : undefined, { poll: true });
 
   useEffect(() => {
     if (!searchParams.payment) return;
@@ -290,15 +299,30 @@ function CheckoutPage() {
   }
 
   // Returned from Pesaflow — confirming against our own backend before
-  // showing anything, so we don't flash the billing form while that
-  // one-shot check is in flight (see the confirm effect above).
-  if (searchParams.payment && searchParams.paymentId && !confirmFetched && !confirmFailed) {
+  // showing anything else, so we don't flash the billing form while that
+  // is still settling (see the confirm effect and usePayment's `poll`
+  // option above). Stays up for the whole poll window, not just the first
+  // fetch, since a pending status can still flip to completed moments later.
+  if (
+    searchParams.payment &&
+    searchParams.paymentId &&
+    !confirmFailed &&
+    (!confirmFetched || !isSettledPaymentStatus(returnPayment?.status))
+  ) {
     return (
       <SiteShell>
         <div className="mx-auto max-w-md px-4 py-24 md:px-8">
           <div className="border border-border bg-paper-warm p-8 text-center">
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
-            <p className="mt-4 font-display text-xl">Confirming your payment…</p>
+            <p className="mt-4 font-display text-xl">
+              {pollTimedOut ? "Still processing…" : "Confirming your payment…"}
+            </p>
+            {pollTimedOut && (
+              <p className="mt-2 text-sm text-muted-foreground">
+                This is taking longer than usual. We'll email your receipt as soon as it's confirmed
+                — no need to keep this page open.
+              </p>
+            )}
           </div>
         </div>
       </SiteShell>
@@ -584,6 +608,22 @@ function PesaflowIframeStep({
 }
 
 /**
+ * Pesaflow's own query_payment_status figures (amount_expected/amount_paid)
+ * can diverge from our order total — e.g. a gateway-side invoice mismatch
+ * where more (or less) was actually taken from the customer's account than
+ * the order was for. Surface the real reported charge when it disagrees,
+ * rather than only ever showing what we expected to charge.
+ */
+function chargedAmount(payment: PaymentOut | null | undefined): number | undefined {
+  return payment?.amount_expected ?? payment?.amount_paid;
+}
+
+function amountChargedDiffers(payment: PaymentOut | null | undefined, orderTotal: number) {
+  const charged = chargedAmount(payment);
+  return charged !== undefined && Math.abs(charged - orderTotal) > 0.01;
+}
+
+/**
  * Pesaflow payment pending/retry step: shown when the user returns from
  * Pesaflow after a failed or abandoned payment. Offers a retry button.
  */
@@ -615,6 +655,15 @@ function PesaflowPendingStep({
           </p>
           <p className="mt-3 font-display text-3xl tabular-nums">{formatKES(order.total)}</p>
           <p className="mt-2 text-sm text-muted-foreground">Order {order.order_number}</p>
+          {amountChargedDiffers(payment, order.total) && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Pesaflow reports{" "}
+              <span className="tabular-nums text-foreground">
+                {formatKES(chargedAmount(payment)!)}
+              </span>{" "}
+              charged for this transaction.
+            </p>
+          )}
           {isFailed && (
             <p className="mt-3 text-sm text-muted-foreground">
               No charge was made. Your order is still open — you can try again.
@@ -757,6 +806,15 @@ function SuccessScreen({
           {displayTotal && (
             <p className="mt-3 text-sm text-muted-foreground">
               Total paid <span className="tabular-nums text-foreground">{displayTotal}</span>
+            </p>
+          )}
+          {order && amountChargedDiffers(payment, order.total) && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Pesaflow reports{" "}
+              <span className="tabular-nums text-foreground">
+                {formatKES(chargedAmount(payment)!)}
+              </span>{" "}
+              charged for this transaction.
             </p>
           )}
         </div>

@@ -84,14 +84,14 @@ export const handlers = [
   ),
 
   http.post(`${API}/auth/forgot-password`, () =>
-    HttpResponse.json(envelope(null, "If that email is registered, a reset link has been sent.")),
+    HttpResponse.json(envelope(null, "If that email is registered, a code has been sent.")),
   ),
 
   http.post(`${API}/auth/reset-password`, async ({ request }) => {
-    const body = (await request.json()) as { uid: string; token: string };
-    if (body.token !== "valid-token") {
+    const body = (await request.json()) as { email: string; code: string };
+    if (body.code !== "123456") {
       return errorEnvelope(400, "Validation failed.", {
-        token: ["Invalid or expired reset link."],
+        code: ["Invalid or expired code."],
       });
     }
     return HttpResponse.json(envelope(null, "Password has been reset. You can now log in."));

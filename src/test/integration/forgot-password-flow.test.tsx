@@ -14,7 +14,9 @@ import { Route as ForgotPasswordRoute } from "@/routes/auth.forgot";
 /**
  * Mirrors login-flow.test.tsx's approach: render the real route component in
  * a minimal hand-built router tree (createFileRoute's output can't be reused
- * directly outside routeTree.gen.ts).
+ * directly outside routeTree.gen.ts). /auth/reset is stubbed just enough to
+ * observe the ?email= handoff from a successful submit — see auth.reset.tsx
+ * for the real code-entry page.
  */
 function renderForgotPasswordPage() {
   const rootRoute = createRootRoute();
@@ -28,7 +30,18 @@ function renderForgotPasswordPage() {
     path: "/auth/login",
     component: () => <div>Sign in page</div>,
   });
-  const routeTree = rootRoute.addChildren([forgotRoute, loginRoute]);
+  const resetRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/auth/reset",
+    validateSearch: (search: Record<string, unknown>) => ({
+      email: search.email as string | undefined,
+    }),
+    component: function ResetStub() {
+      const { email } = resetRoute.useSearch();
+      return <div>Reset page reached with email={email}</div>;
+    },
+  });
+  const routeTree = rootRoute.addChildren([forgotRoute, loginRoute, resetRoute]);
   const router = createRouter({
     routeTree,
     history: createMemoryHistory({ initialEntries: ["/auth/forgot"] }),
@@ -40,20 +53,20 @@ function renderForgotPasswordPage() {
       <RouterProvider router={router} />
     </QueryClientProvider>,
   );
+
+  return router;
 }
 
 describe("ForgotPasswordPage", () => {
-  it("sends a reset link and offers a resend button afterward, initially on cooldown", async () => {
+  it("sends a code and hands off to the reset page with the email prefilled", async () => {
     const user = userEvent.setup();
-    renderForgotPasswordPage();
+    const router = renderForgotPasswordPage();
 
     await user.type(await screen.findByLabelText("Email"), "wanjiku@example.co.ke");
-    await user.click(screen.getByRole("button", { name: "Send reset link" }));
+    await user.click(screen.getByRole("button", { name: "Send code" }));
 
-    await screen.findByText("Reset link sent");
-
-    const resendButton = screen.getByRole("button", { name: /resend link in \d+s/i });
-    expect(resendButton).toBeDisabled();
+    await screen.findByText("Reset page reached with email=wanjiku@example.co.ke");
+    expect(router.state.location.pathname).toBe("/auth/reset");
   });
 
   it("blocks submission client-side on an invalid email, without calling the API", async () => {
@@ -61,9 +74,9 @@ describe("ForgotPasswordPage", () => {
     renderForgotPasswordPage();
 
     await user.type(await screen.findByLabelText("Email"), "not-an-email");
-    await user.click(screen.getByRole("button", { name: "Send reset link" }));
+    await user.click(screen.getByRole("button", { name: "Send code" }));
 
     expect(await screen.findByText(/valid email/i)).toBeInTheDocument();
-    expect(screen.queryByText("Reset link sent")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Reset page reached/)).not.toBeInTheDocument();
   });
 });

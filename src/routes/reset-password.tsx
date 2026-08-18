@@ -2,14 +2,15 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { z } from "zod";
 
 const searchSchema = z.object({
-  uid: z.string().optional(),
-  token: z.string().optional(),
+  email: z.string().optional(),
 });
 
 /**
- * The backend's password-reset email links to `{FRONTEND_URL}/reset-password`,
- * not `/auth/reset` (the real page) — this bridges that mismatch so the
- * emailed link works. See CLAUDE.md/auth.reset.tsx for the actual page.
+ * The backend's password-reset email used to link to
+ * `{FRONTEND_URL}/reset-password?uid&token`; reset is now a 6-digit code
+ * entered on the page (see auth.reset.tsx), not a link, but this bridge
+ * stays in case an old email is still sitting in someone's inbox — it just
+ * forwards `email` now, same as verify-email.tsx does for /auth/verify.
  */
 export const Route = createFileRoute("/reset-password")({
   validateSearch: (search) => searchSchema.parse(search),

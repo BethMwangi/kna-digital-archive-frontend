@@ -20,13 +20,12 @@ import { z } from "zod";
  * full app's router context and can't drop into a standalone test tree (see
  * login-flow.test.tsx's comment for the same constraint).
  *
- * Password reset is still uid/token link-based; email verification moved to
- * a 6-digit code entered on the page (see auth.verify.tsx), so /verify-email
- * only has an `email` param worth preserving now.
+ * Both password reset and email verification are now 6-digit codes entered
+ * on the page (see auth.reset.tsx, auth.verify.tsx), not links — so both
+ * bridges only have an `email` param worth preserving now.
  */
 const resetSearchSchema = z.object({
-  uid: z.string().optional(),
-  token: z.string().optional(),
+  email: z.string().optional(),
 });
 const verifySearchSchema = z.object({
   email: z.string().optional(),
@@ -56,12 +55,8 @@ function renderRedirectFrom(initialPath: string) {
     path: "/auth/reset",
     validateSearch: (search) => resetSearchSchema.parse(search),
     component: function AuthReset() {
-      const { uid, token } = authResetRoute.useSearch();
-      return (
-        <div>
-          Reset page reached with uid={uid} token={token}
-        </div>
-      );
+      const { email } = authResetRoute.useSearch();
+      return <div>Reset page reached with email={email}</div>;
     },
   });
   const authVerifyRoute = createRoute({
@@ -96,10 +91,10 @@ function renderRedirectFrom(initialPath: string) {
 }
 
 describe("email link path redirects", () => {
-  it("redirects /reset-password?uid&token to /auth/reset, preserving both params", async () => {
-    const router = renderRedirectFrom("/reset-password?uid=u-123&token=t-456");
+  it("redirects /reset-password?email to /auth/reset, preserving the param", async () => {
+    const router = renderRedirectFrom("/reset-password?email=wanjiku%40example.co.ke");
 
-    await screen.findByText("Reset page reached with uid=u-123 token=t-456");
+    await screen.findByText("Reset page reached with email=wanjiku@example.co.ke");
     expect(router.state.location.pathname).toBe("/auth/reset");
   });
 

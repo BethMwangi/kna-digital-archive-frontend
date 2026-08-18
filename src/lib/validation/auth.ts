@@ -61,12 +61,14 @@ export type VerifyEmailFormValues = z.infer<typeof verifyEmailSchema>;
 
 export const resetPasswordSchema = z
   .object({
+    email: z.string().email("Enter a valid email address."),
+    code: z.string().regex(/^\d{6}$/, "Enter the 6-digit code."),
     new_password: password,
-    confirm_password: z.string(),
+    new_password_confirm: z.string(),
   })
-  .refine((data) => data.new_password === data.confirm_password, {
+  .refine((data) => data.new_password === data.new_password_confirm, {
     message: "Passwords do not match.",
-    path: ["confirm_password"],
+    path: ["new_password_confirm"],
   });
 
 export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;

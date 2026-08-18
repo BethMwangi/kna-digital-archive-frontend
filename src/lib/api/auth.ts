@@ -37,18 +37,27 @@ export interface ForgotPasswordInput {
   email: string;
 }
 
-/** POST /auth/forgot-password — always responds the same way, whether or not the email exists. */
+/**
+ * POST /auth/forgot-password — issues a 6-digit code and dispatches it by
+ * email and, if a phone number is on file, SMS too (same code either way).
+ * Always responds the same way, whether or not the email exists.
+ */
 export function forgotPassword(input: ForgotPasswordInput): Promise<void> {
   return apiClient.post<void>("/auth/forgot-password", input, { skipAuth: true });
 }
 
 export interface ResetPasswordInput {
-  uid: string;
-  token: string;
+  email: string;
+  code: string;
   new_password: string;
+  new_password_confirm: string;
 }
 
-/** POST /auth/reset-password — uid/token come from the emailed reset link's query params. */
+/**
+ * POST /auth/reset-password — code is the same 6-digit code
+ * forgotPassword() dispatched by email and/or SMS, not a uid/token link.
+ * One-time use: a successful reset clears the code server-side.
+ */
 export function resetPassword(input: ResetPasswordInput): Promise<void> {
   return apiClient.post<void>("/auth/reset-password", input, { skipAuth: true });
 }
