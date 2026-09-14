@@ -11,8 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as LicensingRouteImport } from './routes/licensing'
-import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as BrowseRouteImport } from './routes/browse'
@@ -48,16 +46,6 @@ const VerifyEmailRoute = VerifyEmailRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LicensingRoute = LicensingRouteImport.update({
-  id: '/licensing',
-  path: '/licensing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HowItWorksRoute = HowItWorksRouteImport.update({
-  id: '/how-it-works',
-  path: '/how-it-works',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutRoute = CheckoutRouteImport.update({
@@ -199,8 +187,6 @@ export interface FileRoutesByFullPath {
   '/browse': typeof BrowseRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
-  '/how-it-works': typeof HowItWorksRoute
-  '/licensing': typeof LicensingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
   '/account/downloads': typeof AccountDownloadsRoute
@@ -229,8 +215,6 @@ export interface FileRoutesByTo {
   '/browse': typeof BrowseRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
-  '/how-it-works': typeof HowItWorksRoute
-  '/licensing': typeof LicensingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
   '/account/downloads': typeof AccountDownloadsRoute
@@ -262,8 +246,6 @@ export interface FileRoutesById {
   '/browse': typeof BrowseRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
-  '/how-it-works': typeof HowItWorksRoute
-  '/licensing': typeof LicensingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
   '/account/downloads': typeof AccountDownloadsRoute
@@ -296,8 +278,6 @@ export interface FileRouteTypes {
     | '/browse'
     | '/cart'
     | '/checkout'
-    | '/how-it-works'
-    | '/licensing'
     | '/reset-password'
     | '/verify-email'
     | '/account/downloads'
@@ -326,8 +306,6 @@ export interface FileRouteTypes {
     | '/browse'
     | '/cart'
     | '/checkout'
-    | '/how-it-works'
-    | '/licensing'
     | '/reset-password'
     | '/verify-email'
     | '/account/downloads'
@@ -358,8 +336,6 @@ export interface FileRouteTypes {
     | '/browse'
     | '/cart'
     | '/checkout'
-    | '/how-it-works'
-    | '/licensing'
     | '/reset-password'
     | '/verify-email'
     | '/account/downloads'
@@ -391,8 +367,6 @@ export interface RootRouteChildren {
   BrowseRoute: typeof BrowseRoute
   CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRoute
-  HowItWorksRoute: typeof HowItWorksRoute
-  LicensingRoute: typeof LicensingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   AssetSlugRoute: typeof AssetSlugRoute
@@ -412,20 +386,6 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/licensing': {
-      id: '/licensing'
-      path: '/licensing'
-      fullPath: '/licensing'
-      preLoaderRoute: typeof LicensingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/how-it-works': {
-      id: '/how-it-works'
-      path: '/how-it-works'
-      fullPath: '/how-it-works'
-      preLoaderRoute: typeof HowItWorksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkout': {
@@ -682,8 +642,6 @@ const rootRouteChildren: RootRouteChildren = {
   BrowseRoute: BrowseRoute,
   CartRoute: CartRoute,
   CheckoutRoute: CheckoutRoute,
-  HowItWorksRoute: HowItWorksRoute,
-  LicensingRoute: LicensingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   AssetSlugRoute: AssetSlugRoute,

@@ -35,9 +35,6 @@ export function SiteHeader() {
           >
             Collections
           </Link>
-          <Link to="/licensing" className="text-foreground/80 hover:text-foreground">
-            Licensing
-          </Link>
           <a href="#" className="text-foreground/80 hover:text-foreground">
             About
           </a>
@@ -94,7 +91,7 @@ export function SiteFooter() {
   return (
     <footer className="mt-24 border-t border-border bg-paper-warm">
       <div className="mx-auto max-w-7xl px-4 py-14 md:px-8">
-        <div className="grid gap-12 md:grid-cols-4">
+        <div className="grid gap-12 md:grid-cols-3">
           <div>
             <UrithiLogo className="h-10 w-auto sm:h-12 md:h-14" />
             <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
@@ -111,15 +108,6 @@ export function SiteFooter() {
           <FooterCol
             title="Archive"
             links={["Collections", "Categories", "Latest additions", "Photographers"]}
-          />
-          <FooterCol
-            title="Licensing"
-            links={[
-              { label: "How it works", to: "/how-it-works" },
-              { label: "License types", to: "/licensing" },
-              "Pricing",
-              "Terms of use",
-            ]}
           />
           <FooterCol
             title="Institution"

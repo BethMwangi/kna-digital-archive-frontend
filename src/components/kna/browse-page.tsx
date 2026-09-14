@@ -32,14 +32,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
 
-const ASSET_TYPE_OPTIONS = [
-  { value: "photograph", label: "Photograph" },
-  { value: "video", label: "Video" },
-  { value: "audio", label: "Audio" },
-  { value: "pdf", label: "PDF" },
-  { value: "newspaper", label: "Newspaper" },
-  { value: "document", label: "Document" },
-];
 const PAGE_SIZE = 20; // matches the backend's DEFAULT_PAGE_SIZE
 const MIN_YEAR = 1900;
 const CURRENT_YEAR = new Date().getFullYear();
@@ -67,7 +59,7 @@ function toggleListValue(
   return next.length ? next.join(",") : undefined;
 }
 
-type MultiFilterKey = "category" | "collection" | "asset_type" | "county" | "photographer";
+type MultiFilterKey = "category" | "collection" | "county" | "photographer";
 
 // Backend has no slug field yet — route by id (see src/lib/api/assets.ts).
 function toCard(a: AssetListItem): AssetCardData {
@@ -140,7 +132,6 @@ export function BrowsePage() {
 
   const categoryParams = parseList(search.category);
   const collectionParams = parseList(search.collection);
-  const assetTypeParams = parseList(search.asset_type);
   const countyParams = parseList(search.county);
   const photographerParams = parseList(search.photographer);
 
@@ -225,19 +216,6 @@ export function BrowsePage() {
               checked={(c) => collectionParams.includes(c.id)}
               onCheckedChange={(c, checked) => toggleFilter("collection", c.id, checked)}
             />
-          </FilterGroup>
-
-          <FilterGroup title="Asset type">
-            <div className="space-y-2">
-              {ASSET_TYPE_OPTIONS.map((t) => (
-                <FilterCheck
-                  key={t.value}
-                  label={t.label}
-                  checked={assetTypeParams.includes(t.value)}
-                  onCheckedChange={(checked) => toggleFilter("asset_type", t.value, checked)}
-                />
-              ))}
-            </div>
           </FilterGroup>
 
           <FilterGroup title="Year">

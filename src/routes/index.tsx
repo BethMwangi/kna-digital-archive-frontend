@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { SiteShell } from "@/components/kna/site-shell";
 import {
   AssetCard,
@@ -60,40 +60,71 @@ function HomePage() {
   } = useCollections();
   const { data: assetsPage } = useAssets({ page: 1 });
   const assetsForCover = assetsPage?.results ?? [];
+  const navigate = useNavigate();
+  // "Most viewed" is a proxy on asset count per category (no view-tracking
+  // exists yet) — real categories only, never a placeholder list, so this
+  // panel just disappears if none have loaded rather than show fake topics.
+  const topCategories = [...(realCategories ?? [])]
+    .sort((a, b) => (b.count ?? 0) - (a.count ?? 0))
+    .slice(0, 3);
   return (
     <SiteShell>
-      {/* HERO */}
-      <section className="relative overflow-hidden border-b border-border bg-ink text-paper">
-        <img
-          src={heroImage}
-          alt=""
-          aria-hidden
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-ink/10 via-ink/20 to-ink/60" />
-        <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center px-4 py-8 text-center md:px-8 md:py-12">
-          <div className="max-w-2xl rounded-2xl bg-ink/55 p-4 backdrop-blur-sm md:p-6">
-            <p className="eyebrow !text-paper/70">Established 1963 · National archive</p>
-            <h1 className="mt-3 font-display text-3xl leading-[1.05] md:text-5xl">
-              Kenya's history, <span className="italic text-paper/85">preserved</span> and licensed.
-            </h1>
-            <p className="mt-4 text-sm text-paper/80 md:text-base">
-              Six decades of state photography, wire copy and audiovisual records — indexed,
-              catalogued and available for editorial, commercial, educational and government use.
-            </p>
+      {/* HERO — image on the left (2/3), search panel on the right (1/3) */}
+      <section className="border-b border-border bg-paper-warm">
+        {/* Visually hidden — the page's h1 for SEO/screen readers; the hero
+            is image-only on screen, per design, with no text over it. */}
+        <h1 className="sr-only">Kenya's history, preserved and licensed.</h1>
+        <div className="grid md:min-h-120 md:grid-cols-3">
+          <div className="md:col-span-2">
+            <img
+              src={heroImage}
+              alt=""
+              aria-hidden
+              className="h-64 w-full object-cover sm:h-80 md:h-full"
+            />
           </div>
-          <div className="mt-5 w-full max-w-2xl bg-paper text-foreground shadow-2xl">
-            <SearchBar size="lg" />
-          </div>
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
-            {["Independence", "Kenyatta", "Wildlife", "Nairobi 1970s", "Kip Keino"].map((t) => (
-              <button
-                key={t}
-                className="rounded-full border border-paper/25 bg-ink/40 px-3 py-1 text-xs text-paper/80 backdrop-blur hover:border-paper/60 hover:text-paper"
-              >
-                {t}
-              </button>
-            ))}
+          <div className="flex flex-col gap-4 p-6 pt-8 md:p-8">
+            <SearchBar
+              size="lg"
+              placeholder="Search and explore Kenya's past visually"
+              action={
+                <Button
+                  type="submit"
+                  className="shrink-0 rounded-none bg-flag-green text-paper hover:bg-flag-green/90"
+                >
+                  <Search className="mr-1.5 h-4 w-4" /> Search
+                </Button>
+              }
+            />
+            {categoriesPending ? (
+              <div className="w-full space-y-1 border border-border p-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-9 w-full" />
+                ))}
+              </div>
+            ) : (
+              topCategories.length > 0 && (
+                <div className="w-full border border-border">
+                  <Link
+                    to="/browse"
+                    className="block bg-ink px-4 py-2.5 text-sm font-semibold text-paper hover:bg-ink/90"
+                  >
+                    Explore our most viewed topics
+                  </Link>
+                  {topCategories.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() =>
+                        navigate({ to: "/browse", search: { category: c.id } as never })
+                      }
+                      className="block w-full border-t border-border bg-background px-4 py-3 text-left text-sm text-foreground transition-colors hover:bg-flag-green hover:text-paper"
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                </div>
+              )
+            )}
           </div>
         </div>
       </section>
