@@ -74,57 +74,59 @@ function HomePage() {
         {/* Visually hidden — the page's h1 for SEO/screen readers; the hero
             is image-only on screen, per design, with no text over it. */}
         <h1 className="sr-only">Kenya's history, preserved and licensed.</h1>
-        <div className="grid md:min-h-120 md:grid-cols-3">
-          <div className="md:col-span-2">
-            <img
-              src={heroImage}
-              alt=""
-              aria-hidden
-              className="h-64 w-full object-cover sm:h-80 md:h-full"
-            />
-          </div>
-          <div className="flex flex-col gap-4 p-6 pt-8 md:p-8">
-            <SearchBar
-              size="lg"
-              placeholder="Search and explore Kenya's past visually"
-              action={
-                <Button
-                  type="submit"
-                  className="shrink-0 rounded-none bg-flag-green text-paper hover:bg-flag-green/90"
-                >
-                  <Search className="mr-1.5 h-4 w-4" /> Search
-                </Button>
-              }
-            />
-            {categoriesPending ? (
-              <div className="w-full space-y-1 border border-border p-2">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-9 w-full" />
-                ))}
-              </div>
-            ) : (
-              topCategories.length > 0 && (
-                <div className="w-full border border-border">
-                  <Link
-                    to="/browse"
-                    className="block bg-ink px-4 py-2.5 text-sm font-semibold text-paper hover:bg-ink/90"
+        <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
+          <div className="grid md:min-h-80 md:grid-cols-3">
+            <div className="md:col-span-2">
+              <img
+                src={heroImage}
+                alt=""
+                aria-hidden
+                className="h-48 w-full object-cover sm:h-64 md:h-full"
+              />
+            </div>
+            <div className="flex flex-col gap-4 p-6 pt-8 md:p-8">
+              <SearchBar
+                size="lg"
+                placeholder="Search and explore Kenya's past visually"
+                action={
+                  <Button
+                    type="submit"
+                    className="shrink-0 rounded-none bg-flag-green text-paper hover:bg-flag-green/90"
                   >
-                    Explore our most viewed topics
-                  </Link>
-                  {topCategories.map((c) => (
-                    <button
-                      key={c.id}
-                      onClick={() =>
-                        navigate({ to: "/browse", search: { category: c.id } as never })
-                      }
-                      className="block w-full border-t border-border bg-background px-4 py-3 text-left text-sm text-foreground transition-colors hover:bg-flag-green hover:text-paper"
-                    >
-                      {c.name}
-                    </button>
+                    <Search className="mr-1.5 h-4 w-4" /> Search
+                  </Button>
+                }
+              />
+              {categoriesPending ? (
+                <div className="w-full space-y-1 border border-border p-2">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-9 w-full" />
                   ))}
                 </div>
-              )
-            )}
+              ) : (
+                topCategories.length > 0 && (
+                  <div className="w-full border border-border">
+                    <Link
+                      to="/browse"
+                      className="block bg-ink px-4 py-2.5 text-sm font-semibold text-paper hover:bg-ink/90"
+                    >
+                      Explore our most viewed topics
+                    </Link>
+                    {topCategories.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() =>
+                          navigate({ to: "/browse", search: { category: c.id } as never })
+                        }
+                        className="block w-full border-t border-border bg-background px-4 py-3 text-left text-sm text-foreground transition-colors hover:bg-flag-green hover:text-paper"
+                      >
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
+                )
+              )}
+            </div>
           </div>
         </div>
       </section>
