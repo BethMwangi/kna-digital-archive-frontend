@@ -35,9 +35,9 @@ export function SiteHeader() {
           >
             Collections
           </Link>
-          <a href="#" className="text-foreground/80 hover:text-foreground">
-            About
-          </a>
+          <Link to="/about" className="text-foreground/80 hover:text-foreground">
+            About KNA
+          </Link>
         </nav>
 
         <div className="ml-auto flex items-center gap-1">
@@ -112,7 +112,7 @@ export function SiteFooter() {
           <FooterCol
             title="Institution"
             links={[
-              "About Urithi",
+              { label: "About KNA", to: "/about" },
               { label: "Kenya News Agency", href: "https://www.kenyanews.go.ke/" },
               "Contact",
               "Press office",
