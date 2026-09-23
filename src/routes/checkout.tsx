@@ -17,7 +17,7 @@ import { normalizeKenyanPhone } from "@/components/kna/phone-field";
 import type { OrderOut, PaymentOut } from "@/lib/api/types";
 import { queryKeys } from "@/lib/api/query-keys";
 import { useAuth } from "@/lib/auth/use-auth";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -434,10 +434,19 @@ function CheckoutPage() {
             <section>
               <SectionTitle n="03" title="Billing details" />
               {!isAuthenticated && (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  You'll create an account (or sign in) with this email when you're ready to pay —
-                  no need to do that up front.
-                </p>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border border-border bg-paper-warm px-4 py-3">
+                  <p className="text-xs text-muted-foreground">
+                    Already have an account? Sign in for faster checkout — your cart will be
+                    waiting.
+                  </p>
+                  <Link
+                    to="/auth/login"
+                    search={{ redirect: "/checkout" } as never}
+                    className={buttonVariants({ variant: "outline", size: "sm" }) + " rounded-none"}
+                  >
+                    Sign in
+                  </Link>
+                </div>
               )}
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <Field
@@ -545,12 +554,14 @@ function CheckoutPage() {
                   ? "Processing…"
                   : isAuthenticated
                     ? `Pay ${formatKES(cart?.total ?? 0)}`
-                    : "Continue to create account"}
+                    : "Create account & pay"}
               </Button>
               <p className="mt-3 text-center text-xs text-muted-foreground">
                 {USE_MOCK_PROVIDER
                   ? "Mock payment — development mode"
-                  : "Secured by Pesaflow · TLS 1.3 encrypted"}
+                  : isAuthenticated
+                    ? "Secured by Pesaflow · TLS 1.3 encrypted"
+                    : "We'll create your account with the details above, then take you to payment."}
               </p>
             </div>
           </aside>

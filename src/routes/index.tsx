@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import useEmblaCarousel from "embla-carousel-react";
 import { SiteShell } from "@/components/kna/site-shell";
 import {
   AssetCard,
@@ -14,7 +16,62 @@ import type { AssetListItem, CollectionOut } from "@/lib/api/types";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, ArrowUpRight, Search, ShoppingBag, Download } from "lucide-react";
+import { cn } from "@/lib/utils";
 import heroImage from "@/assets/hero.jpg";
+
+// TODO: swap for real archival photographs once selected — placeholders for the
+// auto-advancing hero carousel (built to take any number of slides).
+const HERO_SLIDES = [heroImage, heroImage, heroImage, heroImage, heroImage];
+
+const HERO_AUTOPLAY_MS = 4500;
+
+function HeroCarousel({ images }: { images: string[] }) {
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    const onSelect = () => setSelectedIndex(emblaApi.selectedScrollSnap());
+    onSelect();
+    emblaApi.on("select", onSelect);
+    return () => {
+      emblaApi.off("select", onSelect);
+    };
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    const id = setInterval(() => emblaApi.scrollNext(), HERO_AUTOPLAY_MS);
+    return () => clearInterval(id);
+  }, [emblaApi]);
+
+  return (
+    <div className="relative h-48 w-full overflow-hidden sm:h-64 md:h-full">
+      <div ref={emblaRef} className="h-full overflow-hidden">
+        <div className="flex h-full">
+          {images.map((src, i) => (
+            <div key={i} className="h-full min-w-0 shrink-0 grow-0 basis-full">
+              <img src={src} alt="" aria-hidden className="h-full w-full object-cover" />
+            </div>
+          ))}
+        </div>
+      </div>
+      {images.length > 1 && (
+        <div className="absolute bottom-3 right-4 flex gap-1.5" aria-hidden>
+          {images.map((_, i) => (
+            <span
+              key={i}
+              className={cn(
+                "h-1.5 w-1.5 rounded-full transition-colors",
+                i === selectedIndex ? "bg-paper" : "bg-paper/40",
+              )}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Backend has no slug field yet — route by id (see src/lib/api/assets.ts).
 function toCard(a: AssetListItem): AssetCardData {
@@ -77,12 +134,7 @@ function HomePage() {
         <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
           <div className="grid md:min-h-80 md:grid-cols-3">
             <div className="md:col-span-2">
-              <img
-                src={heroImage}
-                alt=""
-                aria-hidden
-                className="h-48 w-full object-cover sm:h-64 md:h-full"
-              />
+              <HeroCarousel images={HERO_SLIDES} />
             </div>
             <div className="flex flex-col gap-4 p-6 pt-8 md:p-8">
               <SearchBar
