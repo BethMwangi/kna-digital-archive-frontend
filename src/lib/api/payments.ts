@@ -53,6 +53,26 @@ export async function simulatePayment(
   return fixPayment(data);
 }
 
+export interface TriggerStkInput {
+  /** Normalized +254 MSISDN to push the STK prompt to — see normalizeKenyanPhone. */
+  phone: string;
+  /** Pesaflow gateway selector; defaults to "1" (M-Pesa). */
+  gateway?: string;
+}
+
+/**
+ * POST /payments/{id}/trigger-stk/ — explicitly fires the M-Pesa STK push
+ * server-side. Needed because Pesaflow's own iframe-internal STK trigger is
+ * a cross-origin call from our domain and gets CORS-blocked; the backend
+ * has to make this call on the customer's behalf instead.
+ */
+export async function triggerStk(paymentId: string, input: TriggerStkInput): Promise<void> {
+  await apiClient.post<void>(`/payments/${paymentId}/trigger-stk/`, {
+    phone: input.phone,
+    gateway: input.gateway ?? "1",
+  });
+}
+
 /** GET /payments/ — the current user's payment attempts; pass orderId to scope to one order (retry UI). */
 export async function listPayments(orderId?: string): Promise<PaymentOut[]> {
   const qs = orderId ? `?order=${encodeURIComponent(orderId)}` : "";

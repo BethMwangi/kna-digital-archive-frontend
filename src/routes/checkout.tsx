@@ -11,6 +11,7 @@ import {
   useInitiatePayment,
   usePayment,
   useSimulatePayment,
+  useTriggerStk,
 } from "@/hooks/use-payments";
 import { checkout } from "@/lib/api/orders";
 import { normalizeKenyanPhone } from "@/components/kna/phone-field";
@@ -72,7 +73,7 @@ function CheckoutPage() {
   const [order, setOrder] = useState<OrderOut | null>(null);
   const [payment, setPayment] = useState<PaymentOut | null>(null);
   const [paid, setPaid] = useState(false);
-  const [showIframe, setShowIframe] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const { user, isAuthenticated } = useAuth();
   const [billing, setBilling] = useState<BillingDetails>(() => ({
     firstName: user?.first_name || "",
@@ -97,17 +98,7 @@ function CheckoutPage() {
   });
   const initiate = useInitiatePayment();
   const simulate = useSimulatePayment();
-
-  // Pesaflow's success/fail redirect lands here *inside* our own iframe —
-  // browsers won't let the parent read a cross-origin iframe's location,
-  // but by the time the redirect fires we're same-origin, so this is safe:
-  // break out to the full top-level window instead of rendering the result
-  // page trapped in the 600px embedded box.
-  useEffect(() => {
-    if (window.top && window.top !== window.self) {
-      window.top.location.href = window.location.href;
-    }
-  }, []);
+  const triggerStk = useTriggerStk();
 
   // Handle Pesaflow return redirects (success/failure query params). The
   // redirect URL is only a browser navigation, so confirm the specific
@@ -176,10 +167,30 @@ function CheckoutPage() {
   // payment.error as the human-readable reason), not as a 4xx/5xx. Branching
   // on HTTP success alone would misread a failed payment as a success and
   // try to embed an empty checkout_url, so this checks status first.
+  // Trialing an explicit trigger-stk call ahead of the redirect (still under
+  // test — see checkout.tsx conversation history). Awaited before navigating
+  // away since a full-page redirect can abort an in-flight fetch from the
+  // page that started it. Best-effort either way: if it fails, the customer
+  // can still trigger the prompt from Pesaflow's own checkout page.
+  async function fireStkPush(paymentId: string) {
+    try {
+      await triggerStk.mutateAsync({
+        paymentId,
+        input: { phone: normalizeKenyanPhone(billing.phone) },
+      });
+    } catch {
+      // swallow — Pesaflow's own checkout page is still a fallback.
+    }
+  }
+
   function handlePaymentResult(p: PaymentOut) {
     setPayment(p);
     if (provider === "pesaflow" && p.checkout_url) {
-      setShowIframe(true);
+      const checkoutUrl = p.checkout_url;
+      setRedirecting(true);
+      fireStkPush(p.id).finally(() => {
+        window.location.href = checkoutUrl;
+      });
     } else if (provider === "pesaflow" && p.status === "failed") {
       toast.error(p.error ? `Payment gateway error: ${p.error}` : "Payment could not be started.");
     }
@@ -329,15 +340,20 @@ function CheckoutPage() {
     );
   }
 
-  // Pesaflow's hosted checkout, embedded — the redirect useEffect above
-  // handles detecting completion, not this component watching the iframe.
-  if (showIframe && order && payment?.checkout_url) {
+  // Full-page redirect to Pesaflow's hosted checkout (replacing the iframe
+  // embed under test) — window.location.href in handlePaymentResult takes
+  // the browser there directly; this is just the brief screen shown while
+  // that navigation is in flight.
+  if (redirecting) {
     return (
-      <PesaflowIframeStep
-        order={order}
-        checkoutUrl={payment.checkout_url}
-        onCancel={() => setShowIframe(false)}
-      />
+      <SiteShell>
+        <div className="mx-auto max-w-md px-4 py-24 md:px-8">
+          <div className="border border-border bg-paper-warm p-8 text-center">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+            <p className="mt-4 font-display text-xl">Redirecting to secure payment…</p>
+          </div>
+        </div>
+      </SiteShell>
     );
   }
 
@@ -566,53 +582,6 @@ function CheckoutPage() {
             </div>
           </aside>
         </div>
-      </div>
-    </SiteShell>
-  );
-}
-
-/**
- * Pesaflow's hosted checkout page, embedded in an iframe (per the backend's
- * PesaflowGateway.create_invoice — format="iframe" returns working checkout
- * HTML directly). The customer picks a payment method, triggers an STK
- * push, pays, and Pesaflow eventually redirects *inside this iframe* to
- * callBackURLOnSuccess — our own /checkout route, which busts out to the
- * top-level window and confirms the real status there (see the two
- * useEffects in CheckoutPage). Nothing here watches the iframe directly.
- */
-function PesaflowIframeStep({
-  order,
-  checkoutUrl,
-  onCancel,
-}: {
-  order: OrderOut;
-  checkoutUrl: string;
-  onCancel: () => void;
-}) {
-  return (
-    <SiteShell>
-      <div className="mx-auto max-w-2xl px-4 py-12 md:px-8">
-        <div className="flex items-center justify-between border border-border bg-paper-warm p-4">
-          <div>
-            <p className="text-sm font-medium">Order {order.order_number}</p>
-            <p className="text-xs text-muted-foreground">{formatKES(order.total)}</p>
-          </div>
-        </div>
-        <div className="mt-4 border border-border">
-          <iframe
-            src={checkoutUrl}
-            title="Pesaflow secure checkout"
-            width="100%"
-            height={600}
-            className="block w-full"
-          />
-        </div>
-        <button
-          onClick={onCancel}
-          className="mt-4 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
-        >
-          Cancel and edit billing details
-        </button>
       </div>
     </SiteShell>
   );

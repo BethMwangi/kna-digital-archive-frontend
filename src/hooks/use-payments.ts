@@ -5,8 +5,10 @@ import {
   initiatePayment,
   listPayments,
   simulatePayment,
+  triggerStk,
   type InitiatePaymentInput,
   type SimulatePaymentInput,
+  type TriggerStkInput,
 } from "@/lib/api/payments";
 import { queryKeys } from "@/lib/api/query-keys";
 
@@ -39,6 +41,13 @@ export function useSimulatePayment() {
       queryClient.invalidateQueries({ queryKey: queryKeys.downloads });
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.list });
     },
+  });
+}
+
+export function useTriggerStk() {
+  return useMutation({
+    mutationFn: ({ paymentId, input }: { paymentId: string; input: TriggerStkInput }) =>
+      triggerStk(paymentId, input),
   });
 }
 
