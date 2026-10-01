@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import useEmblaCarousel from "embla-carousel-react";
 import { SiteShell } from "@/components/kna/site-shell";
@@ -15,8 +15,7 @@ import { useAssets, useCategories, useCollections, useFeaturedAssets } from "@/h
 import type { AssetListItem, CollectionOut } from "@/lib/api/types";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, ArrowUpRight, Search, ShoppingBag, Download } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Search, ShoppingBag, Download } from "lucide-react";
 import heroImage from "@/assets/hero.jpg";
 import heroSlide1 from "@/assets/1215_192-KNAPHT-1-03-000542-253.jpg";
 import heroSlide2 from "@/assets/1413_208-KNAPHT-1-08-000515-7.jpg";
@@ -33,17 +32,6 @@ const HERO_AUTOPLAY_MS = 4500;
 
 function HeroCarousel({ images }: { images: string[] }) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
-  const [selectedIndex, setSelectedIndex] = useState(0);
-
-  useEffect(() => {
-    if (!emblaApi) return;
-    const onSelect = () => setSelectedIndex(emblaApi.selectedScrollSnap());
-    onSelect();
-    emblaApi.on("select", onSelect);
-    return () => {
-      emblaApi.off("select", onSelect);
-    };
-  }, [emblaApi]);
 
   useEffect(() => {
     if (!emblaApi) return;
@@ -52,29 +40,42 @@ function HeroCarousel({ images }: { images: string[] }) {
   }, [emblaApi]);
 
   return (
-    <div className="relative h-48 w-full overflow-hidden sm:h-64 md:h-full">
-      <div ref={emblaRef} className="h-full overflow-hidden">
-        <div className="flex h-full">
-          {images.map((src, i) => (
-            <div key={i} className="h-full min-w-0 shrink-0 grow-0 basis-full">
-              <img src={src} alt="" aria-hidden className="h-full w-full object-cover" />
-            </div>
-          ))}
+    // Mounted-print framing — a warm paper mat around a softly rounded photo
+    // suits the old black-and-white material better than a hard edge-to-edge
+    // crop, while staying in the same paper tone as the rest of the hero.
+    <div className="h-52 w-full bg-paper-warm p-2 sm:h-72 md:h-full md:p-3">
+      <div className="relative h-full w-full overflow-hidden rounded-lg ring-1 ring-ink/10">
+        <div ref={emblaRef} className="h-full overflow-hidden">
+          <div className="flex h-full">
+            {images.map((src, i) => (
+              <div key={i} className="h-full min-w-0 shrink-0 grow-0 basis-full">
+                <img src={src} alt="" aria-hidden className="h-full w-full object-cover" />
+              </div>
+            ))}
+          </div>
         </div>
+
+        {images.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={() => emblaApi?.scrollPrev()}
+              aria-label="Previous photo"
+              className="absolute left-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-paper/90 text-ink shadow-md transition hover:bg-paper"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => emblaApi?.scrollNext()}
+              aria-label="Next photo"
+              className="absolute right-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-paper/90 text-ink shadow-md transition hover:bg-paper"
+            >
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </>
+        )}
       </div>
-      {images.length > 1 && (
-        <div className="absolute bottom-3 right-4 flex gap-1.5" aria-hidden>
-          {images.map((_, i) => (
-            <span
-              key={i}
-              className={cn(
-                "h-1.5 w-1.5 rounded-full transition-colors",
-                i === selectedIndex ? "bg-paper" : "bg-paper/40",
-              )}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
