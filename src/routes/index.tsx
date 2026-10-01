@@ -18,10 +18,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, ArrowUpRight, Search, ShoppingBag, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import heroImage from "@/assets/hero.jpg";
+import heroSlide1 from "@/assets/1215_192-KNAPHT-1-03-000542-253.jpg";
+import heroSlide2 from "@/assets/1413_208-KNAPHT-1-08-000515-7.jpg";
+import heroSlide3 from "@/assets/143_16-KNAPHT-1-03-000531-264.jpg";
+import heroSlide4 from "@/assets/301_471-KNAPHT-2-14-003695-98.jpg";
+import heroSlide5 from "@/assets/327_9-KNAPHT-1-08-000571-36.jpg";
+import heroSlide6 from "@/assets/564_119-KNAPHT-3-10-000947-330.jpg";
 
-// TODO: swap for real archival photographs once selected — placeholders for the
-// auto-advancing hero carousel (built to take any number of slides).
-const HERO_SLIDES = [heroImage, heroImage, heroImage, heroImage, heroImage];
+// Real archival photographs for the auto-advancing hero carousel (built to
+// take any number of slides) — converted from the archive's TIFF scans.
+const HERO_SLIDES = [heroSlide1, heroSlide2, heroSlide3, heroSlide4, heroSlide5, heroSlide6];
 
 const HERO_AUTOPLAY_MS = 4500;
 

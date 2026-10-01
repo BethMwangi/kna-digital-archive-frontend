@@ -11,7 +11,6 @@ import {
   useInitiatePayment,
   usePayment,
   useSimulatePayment,
-  useTriggerStk,
 } from "@/hooks/use-payments";
 import { checkout } from "@/lib/api/orders";
 import { normalizeKenyanPhone } from "@/components/kna/phone-field";
@@ -98,7 +97,6 @@ function CheckoutPage() {
   });
   const initiate = useInitiatePayment();
   const simulate = useSimulatePayment();
-  const triggerStk = useTriggerStk();
 
   // Handle Pesaflow return redirects (success/failure query params). The
   // redirect URL is only a browser navigation, so confirm the specific
@@ -166,31 +164,19 @@ function CheckoutPage() {
   // returns 201 — the failure shows up as payment.status === "failed" (with
   // payment.error as the human-readable reason), not as a 4xx/5xx. Branching
   // on HTTP success alone would misread a failed payment as a success and
-  // try to embed an empty checkout_url, so this checks status first.
-  // Trialing an explicit trigger-stk call ahead of the redirect (still under
-  // test — see checkout.tsx conversation history). Awaited before navigating
-  // away since a full-page redirect can abort an in-flight fetch from the
-  // page that started it. Best-effort either way: if it fails, the customer
-  // can still trigger the prompt from Pesaflow's own checkout page.
-  async function fireStkPush(paymentId: string) {
-    try {
-      await triggerStk.mutateAsync({
-        paymentId,
-        input: { phone: normalizeKenyanPhone(billing.phone) },
-      });
-    } catch {
-      // swallow — Pesaflow's own checkout page is still a fallback.
-    }
-  }
-
+  // try to redirect to an empty checkout_url, so this checks status first.
+  //
+  // No automatic STK trigger here — Pesaflow's own hosted checkout page has
+  // its own payment-method menu (M-Pesa, card, etc.) and, for M-Pesa, its
+  // own phone number field (the customer may want to pay from a different
+  // number than their billing phone). Firing a push the moment we redirect,
+  // before they've chosen a method or number, would be the wrong UX — let
+  // Pesaflow's own page prompt for and trigger it.
   function handlePaymentResult(p: PaymentOut) {
     setPayment(p);
     if (provider === "pesaflow" && p.checkout_url) {
-      const checkoutUrl = p.checkout_url;
       setRedirecting(true);
-      fireStkPush(p.id).finally(() => {
-        window.location.href = checkoutUrl;
-      });
+      window.location.href = p.checkout_url;
     } else if (provider === "pesaflow" && p.status === "failed") {
       toast.error(p.error ? `Payment gateway error: ${p.error}` : "Payment could not be started.");
     }
@@ -334,6 +320,27 @@ function CheckoutPage() {
                 — no need to keep this page open.
               </p>
             )}
+          </div>
+        </div>
+      </SiteShell>
+    );
+  }
+
+  // Order creation empties the cart server-side, and we invalidate the cart
+  // query right away (proceedToOrder) so the header's cart badge updates.
+  // But that refetch can resolve to an empty cart *before* payment initiation
+  // finishes — if we kept showing the order-review/total section bound to
+  // that live cart query during this window, the total would flash to zero
+  // right after clicking "Pay". `!payment` scopes this to the initial
+  // checkout only — a retry (handleRetryPayment) already has `payment` set
+  // and shows its own pending state via PesaflowPendingStep below.
+  if (placeOrder.isPending || (initiate.isPending && !payment)) {
+    return (
+      <SiteShell>
+        <div className="mx-auto max-w-md px-4 py-24 md:px-8">
+          <div className="border border-border bg-paper-warm p-8 text-center">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+            <p className="mt-4 font-display text-xl">Placing your order…</p>
           </div>
         </div>
       </SiteShell>
