@@ -39,6 +39,9 @@
   --color-paper-warm: var(--paper-warm);
   --color-flag-red: var(--flag-red);
   --color-flag-green: var(--flag-green);
+  --color-flag-green-deep: var(--flag-green-deep);
+  --color-flag-green-soft: var(--flag-green-soft);
+  --color-flag-red-soft: var(--flag-red-soft);
   --color-rule: var(--rule);
 
   --color-sidebar: var(--sidebar);
@@ -60,6 +63,9 @@
   --paper-warm: oklch(0.965 0.012 82); /* aged paper */
   --flag-red: oklch(0.55 0.21 28); /* Urithi red — from logo */
   --flag-green: oklch(0.5 0.15 148); /* Urithi green — from logo */
+  --flag-green-deep: oklch(0.3 0.09 152); /* deep forest green — shop banner */
+  --flag-green-soft: oklch(0.95 0.035 148); /* green tint — chips, hovers */
+  --flag-red-soft: oklch(0.95 0.03 28); /* red tint — price tags, chips */
   --rule: oklch(0.88 0.008 80); /* hairline rule */
 
   --background: var(--paper);
@@ -113,6 +119,8 @@
   --input: oklch(1 0 0 / 12%);
   --ring: oklch(0.62 0.2 28);
   --paper-warm: oklch(0.2 0.01 250);
+  --flag-green-soft: oklch(0.3 0.06 148);
+  --flag-red-soft: oklch(0.3 0.06 28);
   --rule: oklch(1 0 0 / 10%);
 }
 

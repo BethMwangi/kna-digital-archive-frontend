@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import type { LicenseType, OrderStatus } from "@/lib/mock-data";
 import { formatKES } from "@/lib/mock-data";
-import { Search, X, ZoomIn, Loader2 } from "lucide-react";
+import { Search, X, ZoomIn, Loader2, ArrowUpRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -121,26 +121,38 @@ export function AssetCard({ asset }: { asset: AssetCardData }) {
     <Link
       to="/asset/$slug"
       params={{ slug: asset.slug }}
-      className="group block focus:outline-none"
+      className="group flex flex-col overflow-hidden rounded-xl bg-card ring-1 ring-border shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:ring-flag-green/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-flag-green"
     >
-      <PreviewImage src={asset.image} alt={asset.title} />
-      <div className="mt-3 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{asset.year}</span>
-            <span aria-hidden>·</span>
-            <span className="truncate">{asset.category}</span>
-          </div>
-          <h3 className="mt-1 line-clamp-2 font-display text-[1.05rem] leading-snug text-foreground group-hover:underline underline-offset-4 decoration-1">
-            {asset.title}
-          </h3>
+      <div className="relative">
+        <PreviewImage src={asset.image} alt={asset.title} />
+        <span className="absolute left-3 top-3 rounded-full bg-paper/90 px-2.5 py-0.5 text-[0.68rem] font-semibold tabular-nums text-ink shadow-sm backdrop-blur">
+          {asset.year}
+        </span>
+      </div>
+      <div className="flex flex-1 flex-col p-4">
+        <span className="w-fit max-w-full truncate rounded-full bg-flag-green-soft px-2.5 py-0.5 text-[0.68rem] font-semibold uppercase tracking-wider text-flag-green">
+          {asset.category}
+        </span>
+        <h3 className="mt-2 line-clamp-2 font-display text-[1.05rem] leading-snug text-foreground">
+          {asset.title}
+        </h3>
+        <div className="mt-auto flex items-end justify-between gap-3 pt-4">
+          {typeof asset.priceFrom === "number" ? (
+            <div>
+              <p className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                From
+              </p>
+              <p className="font-semibold tabular-nums text-flag-red">
+                {formatKES(asset.priceFrom)}
+              </p>
+            </div>
+          ) : (
+            <span />
+          )}
+          <span className="inline-flex items-center gap-1 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-paper transition-colors group-hover:bg-flag-red">
+            View & license <ArrowUpRight className="h-3 w-3" />
+          </span>
         </div>
-        {typeof asset.priceFrom === "number" && (
-          <div className="shrink-0 text-right">
-            <p className="eyebrow !text-[0.6rem]">From</p>
-            <p className="font-medium tabular-nums">{formatKES(asset.priceFrom)}</p>
-          </div>
-        )}
       </div>
     </Link>
   );
@@ -249,8 +261,16 @@ export function SearchBar({
   defaultValue,
   action,
   placeholder = "Search the archive — subject, county, photographer, year...",
+  to = "/browse",
+  onSearch,
+  className,
 }: {
   size?: "md" | "lg";
+  /** Page whose archive grid the search should filter — "/" on the home page. */
+  to?: "/" | "/browse";
+  /** Called after a search is submitted (e.g. to scroll the results into view). */
+  onSearch?: () => void;
+  className?: string;
   chips?: string[];
   defaultValue?: string;
   action?: React.ReactNode;
@@ -285,11 +305,8 @@ export function SearchBar({
 
   const handleSearch = (q: string) => {
     setOpen(false);
-    if (q) {
-      navigate({ to: "/browse", search: { q } });
-    } else {
-      navigate({ to: "/browse" });
-    }
+    navigate({ to, search: (q ? { q } : {}) as never });
+    onSearch?.();
   };
 
   const handleSelectSuggestion = (id: string) => {
@@ -307,6 +324,7 @@ export function SearchBar({
         className={cn(
           "flex w-full items-center gap-2 border border-border bg-background",
           size === "lg" ? "p-2" : "p-1.5",
+          className,
         )}
       >
         <Search
